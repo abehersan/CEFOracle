@@ -12,10 +12,10 @@ using OffsetArrays
 
 # export functions and variables for REPL use
 export single_ion
-export meV_per_K, mu0, muB, kB, NA
-export effective_moment
+export meV_per_K, mu0, muB, kB, NA, R
+export effective_moment, blm_dframe
 export cef_eigensystem
-export cef_magnetization, cef_susceptibility
+export cef_magnetization, cef_susceptibility, cef_heatcap
 
 
 # include source files in module scope

@@ -11,6 +11,7 @@ const mu0 = 1.25663706212e-6            # N/A
 const muB = 0.057883818060738013331     # meV / T
 const kB = 0.08617333262                # meV / K
 const NA = 6.02214076e23                # Avogadro number mol^-1
+const R = 8.314462618                   # Ideal gas constant J/mol/K
 
 
 """

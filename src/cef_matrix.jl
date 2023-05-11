@@ -43,8 +43,10 @@ function cef_eigensystem(
         Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  1), :Blm] .= B11
         Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .== -1), :Blm] .= B1m1
         Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  0), :Blm] .= B10
-        Blm_rot = rotate_Blm(Blm_wf, alpha, beta, gamma)
-        cef_matrix = H_cef(J, Blm_rot)
+        """TODO: check the rotation matrix - likely there's a sign wrong!"""
+        # Blm_rot = rotate_Blm(Blm_wf, alpha, beta, gamma)
+        # cef_matrix = H_cef(J, Blm_rot)
+        cef_matrix = H_cef(J, Blm_wf)
         # the Zeeman Hamiltonian is already included in the CEF model above
         # via the O1m operators
         # Blm_rot = rotate_Blm(Blm, alpha, beta, gamma)
@@ -53,6 +55,7 @@ function cef_eigensystem(
 
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
+    cef_energies .-= minimum(cef_energies)
 
     if verbose
         println("CEF Hamiltonian parameters")
@@ -69,8 +72,8 @@ function cef_eigensystem(
             display(Blm_rot)
         end
         println("CEF-split single-ion energy levels in meV:")
-        cef_gs = cef_energies .- minimum(cef_energies)
-        display(cef_gs)
+        # cef_gs = cef_energies .- minimum(cef_energies)
+        display(cef_energies)
     end
     return (cef_matrix, cef_energies, cef_wavefunctions)
 end
@@ -136,9 +139,9 @@ function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
         mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
-        Jp = Array{ComplexF64}(undef, m_dim, m_dim)
-        Jm = Array{ComplexF64}(undef, m_dim, m_dim)
-        Jx = Array{ComplexF64}(undef, m_dim, m_dim)
+        Jp = zeros(ComplexF64, (m_dim, m_dim))
+        Jm = zeros(ComplexF64, (m_dim, m_dim))
+        Jx = zeros(ComplexF64, (m_dim, m_dim))
         Jp .= diagm(1=>jp_eigval[1:end-1])
         Jm .= diagm(-1=>jm_eigval[2:end])
         Jx .= (Jp + Jm)/2.0
@@ -147,28 +150,28 @@ function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
         mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
-        Jp = Array{ComplexF64}(undef, m_dim, m_dim)
-        Jm = Array{ComplexF64}(undef, m_dim, m_dim)
-        Jy = Array{ComplexF64}(undef, m_dim, m_dim)
+        Jp = zeros(ComplexF64, (m_dim, m_dim))
+        Jm = zeros(ComplexF64, (m_dim, m_dim))
+        Jy = zeros(ComplexF64, (m_dim, m_dim))
         Jp .= diagm(1=>jp_eigval[1:end-1])
         Jm .= diagm(-1=>jm_eigval[2:end])
         Jy .= (Jp - Jm)/2.0im
         return Jy
     elseif a=="z"
         mJ = -J:1:J
-        Jz = Array{ComplexF64}(undef, m_dim, m_dim)
+        Jz = zeros(ComplexF64, (m_dim, m_dim))
         Jz .= diagm(mJ)
         return Jz
     elseif a=="+"
         mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
-        Jp = Array{ComplexF64}(undef, m_dim, m_dim)
+        Jp = zeros(ComplexF64, (m_dim, m_dim))
         Jp .= diagm(1=>jp_eigval[1:end-1])
         return Jp
     elseif a=="-"
         mJ = -J:1:J
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
-        Jm = Array{ComplexF64}(undef, m_dim, m_dim)
+        Jm = zeros(ComplexF64, (m_dim, m_dim))
         Jm .= diagm(-1=>jm_eigval[2:end])
         return Jm
     end
