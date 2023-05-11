@@ -38,21 +38,21 @@ function cef_eigensystem(
     if isequal(zeros(Real, 3), external_field)
         cef_matrix = H_cef(J, Blm)
     else
-        B11 =-muB*Bextx*gJ; B1m1 =-muB*Bexty*gJ; B10 =-muB*Bextz*gJ
         Blm_wf = copy(Blm)
+        B11 =-muB*Bextx*gJ; B1m1 =-muB*Bexty*gJ; B10 =-muB*Bextz*gJ
         Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  1), :Blm] .= B11
         Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .== -1), :Blm] .= B1m1
         Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  0), :Blm] .= B10
         Blm_rot = rotate_Blm(Blm_wf, alpha, beta, gamma)
+        cef_matrix = H_cef(J, Blm_rot)
         # the Zeeman Hamiltonian is already included in the CEF model above
         # via the O1m operators
+        # Blm_rot = rotate_Blm(Blm, alpha, beta, gamma)
         # cef_matrix = H_cef(J, Blm_rot) + H_zeeman(J, gJ, external_field)
-        cef_matrix = H_cef(J, Blm_rot)
     end
 
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
-    cef_energies .-= minimum(cef_energies)
 
     if verbose
         println("CEF Hamiltonian parameters")
@@ -64,21 +64,15 @@ function cef_eigensystem(
         else
             alpha_d, beta_d, gamma_d = map(rad2deg, [alpha, beta, gamma])
             println("Euler angles in deg:
-                alpha=$alpha_d, beta=$beta_d, gamma=$gamma_d")
+            alpha=$alpha_d, beta=$beta_d, gamma=$gamma_d")
             println("CEF coefficients in rotated frame:")
             display(Blm_rot)
         end
         println("CEF-split single-ion energy levels in meV:")
-        display(cef_energies)
-        println("CEF-split single-ion energy levels in K:")
-        display(cef_energies ./ meV_per_K)
+        cef_gs = cef_energies .- minimum(cef_energies)
+        display(cef_gs)
     end
-
-    d::Int = 7
-    return (
-        round.(real.(cef_matrix), digits=d)+round.(imag.(cef_matrix), digits=d)*1im,
-        round.(cef_energies, digits=d),
-        round.(real.(cef_wavefunctions), digits=d)+round.(imag.(cef_wavefunctions)*1im, digits=d))
+    return (cef_matrix, cef_energies, cef_wavefunctions)
 end
 
 
@@ -86,17 +80,15 @@ end
 Compute the full CEF matrix given a set of Blm parameters
 """
 function H_cef(J::Float64, Blm::DataFrame)::Matrix{ComplexF64}
-    ls = collect(Set(Blm[!, :l]))
     m_dim = Int(2.0*J+1.0)
     cef_matrix = zeros(ComplexF64, m_dim, m_dim)
-    for l in ls
-        for (i, m) in enumerate(-l:1:l)
-            blm = Blm[(Blm.l .== l) .& (Blm.m .== m), :Blm][1]
-            if iszero(blm)
-                continue
-            else
-                cef_matrix += blm * stevens_EO(J, l, m)
-            end
+    ls = Set(Blm[!, :l])
+    for l in ls, m in -l:1:l
+        cef_param = Blm[(Blm.l .== l) .& (Blm.m .== m), :Blm][1]
+        if iszero(cef_param)
+            continue
+        else
+            cef_matrix += cef_param * stevens_EO(J, l, m)
         end
     end
     return cef_matrix
@@ -110,10 +102,10 @@ g-factor and a vector containing the applied magnetic field in Tesla
 function H_zeeman(
     J::Float64, g::Float64, external_field::Vector{<:Real}
     )
-    Jz = spin_operators(J, "z")
     Jy = spin_operators(J, "y")
     Jx = spin_operators(J, "x")
-    Bx, By, Bz = -1.0 * g * muB * external_field
+    Jz = spin_operators(J, "z")
+    Bx, By, Bz = - 1.0 * g * muB * external_field
     return sum([Bx*Jx, By*Jy, Bz*Jz])
 end
 
@@ -130,7 +122,7 @@ function H_zeeman(
     Jz = spin_operators(J, "z")
     Jy = spin_operators(J, "y")
     Jx = spin_operators(J, "x")
-    Bx, By, Bz = @. -1.0 * g * muB * external_field
+    Bx, By, Bz = @. - 1.0 * g * muB * external_field
     return sum([Bx*Jx, By*Jy, Bz*Jz])
 end
 
@@ -215,7 +207,6 @@ wigner_D is a (2l+1)x(2l+1) rotation matrix for the spherical tensor op. rank l
 function wigner_D(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
     m_dim = Int(2*l+1)
     ml = -l:1:l
-    # rot_mat = Array{ComplexF64}(undef, m_dim, m_dim)
     rot_mat = zeros(ComplexF64, (m_dim, m_dim))
     for (idmp, mm) in enumerate(ml)
         for (idm, mp) in enumerate(ml)
@@ -315,7 +306,7 @@ function rotate_stevens(
     )::Matrix{ComplexF64}
     rot_mat = zeros(ComplexF64, (2l+1, 2l+1))
     rot_mat = transpose(inv(Alm_matrix(l))) *
-        wigner_D(l, -alpha, -beta, -gamma)' *
+        wigner_D(l, alpha, beta, gamma)' *
         transpose(Alm_matrix(l))
     return rot_mat
 end
@@ -340,19 +331,19 @@ function ryabov_clm(l::Int, m::Int)::Float64
     # Flm coefficients calculated by Stoll and implemented in EasySpin
     # see: https://github.com/StollLab/EasySpin/blob/main/easyspin/stev.m
     F = SMatrix{13, 13, Int}([
-    1           0           0           0           0       0       0       0       0       0   0   0   0
-    2           1           0           0           0       0       0       0       0       0   0   0   0
-    4           2           1           0           0       0       0       0       0       0   0   0   0
-    24          6           6           1           0       0       0       0       0       0   0   0   0
-    48          24          8           4           1       0       0       0       0       0   0   0   0
-    480         240         240         10          10      1       0       0       0       0   0   0   0
-    2880        1440        360         60          12      6       1       0       0       0   0   0   0
-    40320       5040        1680        168         168     14      14      1       0       0   0   0   0
-    80640       40320       40320       6720        672     336     16      8       1       0   0   0   0
-    1451520     725700      725700      60480       60480   864     288     18      18      1   0   0   0
-    14515200    7257600     1209600     604800      86400   2880    360     180     20      10  1   0   0
-    319334400   79833600    79833600    13305600    2661120 23760   7920    1320    1320    22  22  1   0
-    1916006400  958003200   958003200   31933440    3991680 1995840 31680   15840   1584    264 24  12  1
+    1           0           0           0           0       0       0       0       0       0   0   0   0;
+    2           1           0           0           0       0       0       0       0       0   0   0   0;
+    4           2           1           0           0       0       0       0       0       0   0   0   0;
+    24          6           6           1           0       0       0       0       0       0   0   0   0;
+    48          24          8           4           1       0       0       0       0       0   0   0   0;
+    480         240         240         10          10      1       0       0       0       0   0   0   0;
+    2880        1440        360         60          12      6       1       0       0       0   0   0   0;
+    40320       5040        1680        168         168     14      14      1       0       0   0   0   0;
+    80640       40320       40320       6720        672     336     16      8       1       0   0   0   0;
+    1451520     725700      725700      60480       60480   864     288     18      18      1   0   0   0;
+    14515200    7257600     1209600     604800      86400   2880    360     180     20      10  1   0   0;
+    319334400   79833600    79833600    13305600    2661120 23760   7920    1320    1320    22  22  1   0;
+    1916006400  958003200   958003200   31933440    3991680 1995840 31680   15840   1584    264 24  12  1;
     ])
     Flm = F[l+1, abs(m)+1]
 
