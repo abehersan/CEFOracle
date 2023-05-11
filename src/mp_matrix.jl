@@ -32,10 +32,9 @@ function transition_matrix_element(;
     m::Vector{ComplexF64},
     operator::Matrix{ComplexF64}
     )::Float64
-    # @assert is_hermitian(operator) # test disabled for performance
-    t_mel = real(dot(transpose(n), operator, m))
+    t_mel = dot(transpose(n), operator, m)
     @assert norm(imag(t_mel)) < 1e-12
-    return Real(t_mel)
+    return t_mel.re
 end
 
 
@@ -51,7 +50,7 @@ function thermal_average(
     T::Float64
     )::Float64
     matrix_elements = zeros(Float64, length(Ep))
-    for p in 1:1:length(Ep)
+    for p in eachindex(Ep)
         matrix_elements[p] = transition_matrix_element(
             n=Vp[:,p],
             operator=operator,
@@ -92,6 +91,7 @@ function cef_magnetization(
     Bextx::Real=0.0, Bexty::Real=0.0, Bextz::Real=0.0, T::Real=10.0;
     verbose=false
     )::Vector{Float64}
+    @warn "Blm Dictionary given. DataFrames are more performant."
     return cef_magnetization(
         single_ion, blm_dframe(Blm), Bextx, Bexty, Bextz, T; verbose=verbose
         )
@@ -111,11 +111,11 @@ function cef_magnetization(
     Jz = spin_operators(single_ion.J, "z")
     magnetization_vector = zeros(Real, 3)
     spin_ops = [Jx, Jy, Jz]
-    for (i, J_op) in enumerate(spin_ops)
-        magnetization_vector[i] =
+    for a in eachindex(spin_ops)
+        magnetization_vector[a] =
             calc_magnetization(
                 Ep=cef_energies, Vp=cef_wavefunctions,
-                J_alpha=J_op, T=T,
+                J_alpha=spin_ops[a], T=T,
                 )
     end
     return magnetization_vector
@@ -168,34 +168,34 @@ function calc_susceptibility(;
     J_alpha::Matrix{ComplexF64},
     J_beta::Matrix{ComplexF64},
     T::Float64,
-    )
+    )::Float64
     chi_alphabeta::Float64 = 0.0
-    np = population_factor(Ep, T) # 2J+1 dimension vector
-    for (p, ep) in enumerate(Ep)
-        for (pp, epp) in enumerate(Ep)
-            if isapprox(epp, ep; atol=1e-7)
-                m_element_alpha = transition_matrix_element(
-                    n=Vp[:,p], m=Vp[:,pp], operator=J_alpha
-                    )
-                m_element_beta = transition_matrix_element(
-                    n=Vp[:,pp], m=Vp[:,p], operator=J_beta
-                    )
-                m_element = sum((m_element_alpha*m_element_beta*np))/(kB*T)
-                chi_alphabeta += m_element
-                # println("elastic mel: $m_element")
-            else
-                m_element_alpha = transition_matrix_element(
-                    n=Vp[:,p], m=Vp[:,pp], operator=J_alpha
-                    )
-                m_element_beta = transition_matrix_element(
-                    n=Vp[:,pp], m=Vp[:,p], operator=J_beta
-                    )
-                pop_diff = np * (1.0 - exp(-(epp-ep)/(kB*T)))
-                m_element = sum((m_element_alpha*m_element_beta*pop_diff))/
-                    (epp-ep)
-                chi_alphabeta += m_element
-                # println("inelastic mel: $m_element")
-            end
+    np_all = population_factor(Ep, T) # 2J+1 dimension vector
+    for (p, ep) in enumerate(Ep), (pp, epp) in enumerate(Ep)
+        if isapprox(epp, ep; atol=1e-7)
+            m_element_alpha = transition_matrix_element(
+                n=Vp[:,p], operator=J_alpha, m=Vp[:,pp]
+                )
+            m_element_beta = transition_matrix_element(
+                n=Vp[:,pp], operator=J_beta, m=Vp[:,p]
+                )
+            m_element =
+                m_element_alpha*m_element_beta*np_all[p]/(kB*T)
+            chi_alphabeta += m_element
+            # println("elastic mel: $m_element")
+        else
+            m_element_alpha = transition_matrix_element(
+                n=Vp[:,p], operator=J_alpha, m=Vp[:,pp]
+                )
+            m_element_beta = transition_matrix_element(
+                n=Vp[:,pp], operator=J_beta, m=Vp[:,p]
+                )
+            # pop_diff = np * (1.0 - exp(-(epp-ep)/(kB*T)))
+            # pop_diff = exp(-ep/(kB*T)/Z) - exp(-epp/(kB*T))/Z
+            pop_diff = np_all[p] - np_all[pp]
+            m_element = (m_element_alpha*m_element_beta*pop_diff)/(epp-ep)
+            chi_alphabeta += m_element
+            # println("inelastic mel: $m_element")
         end
     end
     t_avg_alpha = thermal_average(Ep, Vp, J_alpha, T)
@@ -216,6 +216,7 @@ function cef_susceptibility(
     Bextx::Real=0.0, Bexty::Real=0.0, Bextz::Real=0.0, T::Real=1.0;
     verbose=false
     )
+    @warn "Blm Dictionary given. DataFrames are more performant."
     return cef_susceptibility(
         single_ion, blm_dframe(Blm), Bextx, Bexty, Bextz, T; verbose=verbose
         )
@@ -230,22 +231,20 @@ function cef_susceptibility(
     )::Matrix{Float64}
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm, Bextx, Bexty, Bextz, verbose=verbose)
-    Jz = spin_operators(single_ion.J, "z")
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
-    spin_ops = (Jx, Jy, Jz)
+    Jz = spin_operators(single_ion.J, "z")
+    spin_ops = [Jx, Jy, Jz]
     susceptibility_tensor = zeros(Float64, (3, 3))
-    for (a, f) in enumerate(spin_ops)
-        for (b, ff) in enumerate(spin_ops)
-            susceptibility_tensor[a, b] =
-                calc_susceptibility(
-                Ep=cef_energies, Vp=cef_wavefunctions,
-                J_alpha=spin_ops[a], J_beta=spin_ops[b], T=T,
-                )
-        end
+    for a in eachindex(spin_ops), b in eachindex(spin_ops)
+        susceptibility_tensor[a, b] =
+            calc_susceptibility(
+            Ep=cef_energies, Vp=cef_wavefunctions,
+            J_alpha=spin_ops[a], J_beta=spin_ops[b], T=T,
+            )
     end
-    # return susceptibility_tensor
-    return @. (single_ion.gJ*muB)^2 * susceptibility_tensor
+    return susceptibility_tensor
+    # return @. (single_ion.gJ*muB)^2 * susceptibility_tensor
 end
 
 
@@ -272,23 +271,23 @@ Useful plotting functions
 
 function plot_mag(J_expt)
     jx, jy, jz = J_expt[:, 1], J_expt[:, 2], J_expt[:, 3]
-    plot!(jx, labels="jx")
+    plot( jx, labels="jx")
     plot!(jy, labels="jy")
     plot!(jz, labels="jz")
-    end
+end
 
 function plot_chi(chi_tensor)
     chi_aa, chi_ab, chi_ac = chi_tensor[1, 1, :], chi_tensor[1, 2, :], chi_tensor[1, 3, :]
     chi_ba, chi_bb, chi_bc = chi_tensor[2, 1, :], chi_tensor[2, 2, :], chi_tensor[2, 3, :]
     chi_ca, chi_cb, chi_cc = chi_tensor[3, 1, :], chi_tensor[3, 2, :], chi_tensor[3, 3, :]
-    plot( 1 ./chi_aa, labels="chi_aa")
-    plot!(1 ./chi_ab, labels="chi_ab")
-    plot!(1 ./chi_ac, labels="chi_ac")
-    plot!(1 ./chi_ba, labels="chi_ba")
-    plot!(1 ./chi_bb, labels="chi_bb")
-    plot!(1 ./chi_bc, labels="chi_bc")
-    plot!(1 ./chi_ca, labels="chi_ca")
-    plot!(1 ./chi_cb, labels="chi_cb")
-    plot!(1 ./chi_cc, labels="chi_cc")
+    plot( chi_aa, labels="chi_aa")
+    plot!(chi_ab, labels="chi_ab")
+    plot!(chi_ac, labels="chi_ac")
+    plot!(chi_ba, labels="chi_ba")
+    plot!(chi_bb, labels="chi_bb")
+    plot!(chi_bc, labels="chi_bc")
+    plot!(chi_ca, labels="chi_ca")
+    plot!(chi_cb, labels="chi_cb")
+    plot!(chi_cc, labels="chi_cc")
 end
 """
