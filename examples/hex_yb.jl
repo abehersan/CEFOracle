@@ -23,8 +23,8 @@ calculate the Schottky specific heat capacity for both models
 reproduces figure 8 of the paper
 """
 temps = LinRange(0.5, 300, 150)
-cv_A = [cef_heatcapacity_speclevels(yb,bdf_A,t,[0,0,0],1:4) for t in temps]
-cv_B = [cef_heatcapacity_speclevels(yb,bdf_B,t,[0,0,0],1:4) for t in temps]
+cv_A = [cef_heatcapacity_speclevels(yb,bdf_A,t,1:4) for t in temps]
+cv_B = [cef_heatcapacity_speclevels(yb,bdf_B,t,1:4) for t in temps]
 cv_plot = plot(
             temps, [cv_A cv_B],
             label=["A" "B"],

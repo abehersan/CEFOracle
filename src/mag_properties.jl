@@ -141,7 +141,7 @@ function calc_susceptibility(;
     Ep::Vector{Float64},
     Vp::Matrix{ComplexF64},
     J_alpha::Matrix{ComplexF64},
-    T::Float64,
+    T::Float64
     )::Float64
     chi_alphaalpha::Float64 = 0.0
     np_all = population_factor(Ep, T) # 2J+1 vector
@@ -244,30 +244,29 @@ parametrized by Stevens parameters
 """
 # method: Blm dictionary, single environment
 function cef_heatcapacity(
-    single_ion::mag_ion, Blm::Dict{String, Float64}, T::Real, Bext::Vector{<:Real}
+    single_ion::mag_ion, Blm::Dict{String, Float64}, T::Real
     )::Float64
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
-    cef_heatcap(single_ion, blm_dframe(Blm), T, Bext)
+    cef_heatcap(single_ion, blm_dframe(Blm), T)
 end
 
 
 # method: Blm DataFrame, all levels contribute
 function cef_heatcapacity(
-    single_ion::mag_ion, Blm::DataFrame, T::Real, Bext::Vector{<:Real}
+    single_ion::mag_ion, Blm::DataFrame, T::Real
     )::Float64
     _, cef_energies, _ =
-        cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
+        cef_eigensystem(single_ion, Blm)
     calc_heatcap(cef_energies, T)
 end
 
 
 # method: Blm DataFrame, only levels specified contribute (2J+1 levels in total)
 function cef_heatcapacity_speclevels(
-    single_ion::mag_ion, Blm::DataFrame, T::Real, Bext::Vector{<:Real},
-    levels::UnitRange
+    single_ion::mag_ion, Blm::DataFrame, T::Real, levels::UnitRange
     )::Float64
     _, cef_energies, _ =
-        cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
+        cef_eigensystem(single_ion, Blm)
     calc_heatcap(cef_energies[levels], T)
 end

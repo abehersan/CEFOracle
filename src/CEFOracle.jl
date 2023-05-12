@@ -3,9 +3,12 @@ module CEFOracle
 
 # using external modules
 using DataFrames
+using JuMP
 using LinearAlgebra
 using Logging
+using NLopt
 using Plots
+using SpecialFunctions
 using StaticArrays
 using Statistics
 using OffsetArrays
