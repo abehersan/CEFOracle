@@ -7,22 +7,16 @@ Hamiltonian -> H = H_CF + H_Zeeman
 """
 
 function cef_eigensystem(
-    single_ion::mag_ion,
-    Blm::Dict{String, <:Real},
-    Bextx::Real=0.0, Bexty::Real=0.0, Bextz::Real=0.0;
-    verbose=false
+    single_ion::mag_ion, Blm::Dict{String, <:Real},
+    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0; verbose=false
     )
-    return cef_eigensystem(
-        single_ion, blm_dframe(Blm), Bextx, Bexty, Bextz; verbose=verbose
-        )
+    cef_eigensystem(single_ion, blm_dframe(Blm), Bx, By, Bz; verbose=verbose)
 end
 
 
 function cef_eigensystem(
-    single_ion::mag_ion,
-    Blm::DataFrame,
-    Bextx::Real=0.0, Bexty::Real=0.0, Bextz::Real=0.0;
-    verbose=false
+    single_ion::mag_ion, Blm::DataFrame,
+    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0; verbose=false
     )
     J = single_ion.J
     gJ = single_ion.gJ
@@ -32,25 +26,27 @@ function cef_eigensystem(
     cef_energies = zeros(Float64, (m_dim, m_dim))
     cef_wavefunctions = zeros(ComplexF64, (m_dim, m_dim))
 
-    external_field = [Bextx, Bexty, Bextz]
+    external_field = [Bx, By, Bz]
     alpha, beta, gamma = get_euler_angles(external_field)
 
     if isequal(zeros(Real, 3), external_field)
         cef_matrix = H_cef(J, Blm)
     else
+        # The Zeeman Hamiltonian is included in the total Hamiltonian
+        # via the O1m operators
         Blm_wf = copy(Blm)
-        B11 =-muB*Bextx*gJ; B1m1 =-muB*Bexty*gJ; B10 =-muB*Bextz*gJ
+        B11 =-muB*Bx*gJ; B1m1 =-muB*By*gJ; B10 =-muB*Bz*gJ
         Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  1), :Blm] .= B11
         Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .== -1), :Blm] .= B1m1
         Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  0), :Blm] .= B10
-        """TODO: check the rotation matrix - likely there's a sign wrong!"""
+        cef_matrix = H_cef(J, Blm_wf)
+        """
+        TODO: verify that the rotation of the CEF Hamiltonian is as
+        expected, i.e. that the expectation values of the operators
+        in the non-rotated frame are as you would expect...
+        """
         # Blm_rot = rotate_Blm(Blm_wf, alpha, beta, gamma)
         # cef_matrix = H_cef(J, Blm_rot)
-        cef_matrix = H_cef(J, Blm_wf)
-        # the Zeeman Hamiltonian is already included in the CEF model above
-        # via the O1m operators
-        # Blm_rot = rotate_Blm(Blm, alpha, beta, gamma)
-        # cef_matrix = H_cef(J, Blm_rot) + H_zeeman(J, gJ, external_field)
     end
 
     cef_wavefunctions = eigvecs(cef_matrix)
@@ -72,10 +68,9 @@ function cef_eigensystem(
             display(Blm_rot)
         end
         println("CEF-split single-ion energy levels in meV:")
-        # cef_gs = cef_energies .- minimum(cef_energies)
         display(cef_energies)
     end
-    return (cef_matrix, cef_energies, cef_wavefunctions)
+    (cef_matrix, cef_energies, cef_wavefunctions)
 end
 
 
@@ -94,7 +89,8 @@ function H_cef(J::Float64, Blm::DataFrame)::Matrix{ComplexF64}
             cef_matrix += cef_param * stevens_EO(J, l, m)
         end
     end
-    return cef_matrix
+    @assert is_hermitian(cef_matrix)
+    cef_matrix
 end
 
 
@@ -109,7 +105,7 @@ function H_zeeman(
     Jx = spin_operators(J, "x")
     Jz = spin_operators(J, "z")
     Bx, By, Bz = - 1.0 * g * muB * external_field
-    return sum([Bx*Jx, By*Jy, Bz*Jz])
+    sum([Bx*Jx, By*Jy, Bz*Jz])
 end
 
 
@@ -126,16 +122,16 @@ function H_zeeman(
     Jy = spin_operators(J, "y")
     Jx = spin_operators(J, "x")
     Bx, By, Bz = @. - 1.0 * g * muB * external_field
-    return sum([Bx*Jx, By*Jy, Bz*Jz])
+    sum([Bx*Jx, By*Jy, Bz*Jz])
 end
 
 
 """
-Matrix form of the spin operators for arbitrary spin J
+Explicit matrix form of the spin operators for arbitrary spin J
 """
 function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
     m_dim = Int(2*J+1)
-    if a=="x"
+    if isequal(a, "x")
         mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
@@ -145,8 +141,7 @@ function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
         Jp .= diagm(1=>jp_eigval[1:end-1])
         Jm .= diagm(-1=>jm_eigval[2:end])
         Jx .= (Jp + Jm)/2.0
-        return Jx
-    elseif a=="y"
+    elseif isequal(a, "y")
         mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
@@ -156,24 +151,20 @@ function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
         Jp .= diagm(1=>jp_eigval[1:end-1])
         Jm .= diagm(-1=>jm_eigval[2:end])
         Jy .= (Jp - Jm)/2.0im
-        return Jy
-    elseif a=="z"
+    elseif isequal(a, "z")
         mJ = -J:1:J
         Jz = zeros(ComplexF64, (m_dim, m_dim))
         Jz .= diagm(mJ)
-        return Jz
-    elseif a=="+"
+    elseif isequal(a, "+")
         mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         Jp = zeros(ComplexF64, (m_dim, m_dim))
         Jp .= diagm(1=>jp_eigval[1:end-1])
-        return Jp
-    elseif a=="-"
+    elseif isequal(a, "-")
         mJ = -J:1:J
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
         Jm = zeros(ComplexF64, (m_dim, m_dim))
         Jm .= diagm(-1=>jm_eigval[2:end])
-        return Jm
     end
 end
 
@@ -193,7 +184,7 @@ function get_euler_angles(v::Vector{<:Real})::Vector{Float64}
     alpha = atan(v_norm[2], v_norm[1])# / pi * 180.0
     beta = atan((v_norm[1]^2 + v_norm[2]^2), v_norm[3])# / pi * 180.0
     gamma = 0.0
-    return [alpha, beta, gamma]
+    [alpha, beta, gamma]
 end
 
 
@@ -218,7 +209,7 @@ function wigner_D(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF
         end
     end
     @assert is_unitary(rot_mat)
-    return rot_mat
+    rot_mat
 end
 
 
@@ -226,7 +217,6 @@ function rotation_matrix_element(
     l::Int, m::Int, mp::Int, alpha::Real, beta::Real, gamma::Real
     )::ComplexF64
     mel = exp(1.0im*mp*alpha) * small_d(l, mp, m, beta) * exp(1.0im*m*gamma)
-    return mel
 end
 
 
@@ -258,7 +248,6 @@ function small_d(l::Int, mp::Int, m::Int, beta::Real)::Float64
         "Matrix element djmpm is NaN or Inf!\n"*
         "Likely there's an issue in the inputted values of l, m or mp."
         @error err_message
-        return
     else
         return djmpm
     end
@@ -300,7 +289,7 @@ function rotate_Blm(
             DataFrame("Blm"=>Blm_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l)
             )
     end
-    return Blm_rotated
+    Blm_rotated
 end
 
 
@@ -311,7 +300,6 @@ function rotate_stevens(
     rot_mat = transpose(inv(Alm_matrix(l))) *
         wigner_D(l, alpha, beta, gamma)' *
         transpose(Alm_matrix(l))
-    return rot_mat
 end
 
 
@@ -370,8 +358,6 @@ function ryabov_clm(l::Int, m::Int)::Float64
     # println("Nlm/Nll: :$(Nlm/Nll)")
     # println("Flm: $Flm")
     # println("clm: $clm")
-
-    return clm
 end
 
 
@@ -395,8 +381,8 @@ function stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
     else
         Op = clm/2im * (T - adjoint(T))
     end
-    @assert is_hermitian(Op)
-    return Op
+    # @assert is_hermitian(Op) # assertion is made for full Hamiltonian!
+    Op
 end
 
 
@@ -429,5 +415,5 @@ function Alm_matrix(l::Int)::Matrix{ComplexF64}
             a_matrix[m,  abs(m)] = alm_coeff[l, abs(m)] * (-1)^m * -1im
         end
     end
-    return parent(a_matrix)
+    parent(a_matrix)
 end
