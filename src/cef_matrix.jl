@@ -222,7 +222,7 @@ end
 
 function small_d(l::Int, mp::Int, m::Int, beta::Real)::Float64
     if iszero(beta)
-        return isequal(m, mp) * 1.0
+        return isequal(m, mp) * 1.0 # delta function d_m'm if beta=0
     end
     # s = 0
     djmpm = 0.0

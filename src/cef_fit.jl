@@ -12,19 +12,19 @@ by including weights in the various dataframes as one further restricts
 parameter space
 
 magnetization data
-    T, Bext, M, Dir, Err, Wght          # SC
-    T, Bext, M, Err, Wght               # polycrystal
+    T, Bext, M, Dir, Err          # SC
+    T, Bext, M, Err               # polycrystal
 
 susceptibility data
-    T, Bext, M, Dir, Err, Wght          # SC
-    T, Bext, M, Err, Wght               # polycrystal
+    T, Bext, M, Dir, Err          # SC
+    T, Bext, M, Err               # polycrystal
 
 specific heat data
-    T, Cv, Err, Wght                    # SC
+    T, Cv, Err                    # SC
 
 inelastic neutron scattering spectra, sc and powder
-    T, Bext, Dir, Qx, Qy, Qz, E, I, Err, Wght, GWidth(E)   # SC
-    T, Bext, Qlen, E, I, Err, Wght, GWidth(E)              # polycrystal
+    T, Bext, Dir, Qx, Qy, Qz, E, I, Err   # SC
+    T, Bext, Qlen, E, I, Err              # polycrystal
 """
 Base.@kwdef mutable struct cef_datasets
     # single crystal data
@@ -42,6 +42,8 @@ end
 
 """
 given a cef_datasets struct, compute chi^2
+IDEA: make chi2_dset where dset is either any specific dataset, with of course
+very different fitting parameters
 """
 function chi2(ion::mag_ion, Blm::DataFrame, dsets::cef_datasets)::Float64
     chi2::Float64 = 0.0
@@ -120,8 +122,6 @@ end
 # update the inputted parameters with the best fit result
 # """
 # function fit_cef!(ion::mag_ion, Blm::Dict{String, <:Real}, data::cef_datasets)
-#     using JuMp
-#     using NLopt
 #     model = Model(NLopt.Optimizer)
 #     set_optimizer_attribute(model, "algorithm", :NLOPT_LN_SBPLX) # Subplex
 # end

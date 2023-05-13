@@ -19,6 +19,22 @@ bdf_B = blm_dframe(bs_modelB)
 
 
 """
+calculate the inelastic neutron scattering x-section for model A at different
+temperatures assuming a Gaussian resolution function
+we assume a polycrystal sample
+"""
+es = LinRange(-12, 12, 150)
+res_func(E, dE, sigma=0.1, gamma=x->0.1) =
+    TAS_resfunc(E=E, dE=dE, elastic_FWHM=sigma, inelastic_FWHM=gamma)
+ins_plot = plot(xlabel="Energy [meV]", ylabel="I(Q,E)")
+for t in [10.0, 50.0, 200.0]
+    plot!(
+        es, [cef_xsection(yb, bdf_A, t, e, 2.556, res_func) for e in es],
+        label="T=$t")
+end
+
+
+"""
 calculate the Schottky specific heat capacity for both models
 reproduces figure 8 of the paper
 """
@@ -72,4 +88,4 @@ invchi_plot = plot(
                 )
 
 
-plot(cv_plot, mag_plot, invchi_plot, layout=(3, 1), legend=true, dpi=300)
+plot(ins_plot, cv_plot, mag_plot, invchi_plot, layout=(2, 2), legend=true, dpi=300)
