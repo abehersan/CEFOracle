@@ -12,28 +12,75 @@ by including weights in the various dataframes as one further restricts
 parameter space
 
 magnetization data
-    T, Bext, M, Dir, Err
+    T [K], Bext [T], M [muB], Dir [x, y, z], Err
 
 susceptibility data
-    T, Bext, M, Dir, Err
+    T [K], Bext [T], Chi [emu/mol/Oe], Dir [x, y, z], Err
 
 specific heat data
-    T, Cv, Err
+    T [K], Cv [J/K/mol], Err
 
 inelastic neutron scattering spectra, sc and powder
-    T, Bext, Dir, Qx, Qy, Qz, E, I, Err, Wght, GWidth(E)   # SC
+    T, Bext, Dir, Qx, Qy, Qz, E, I, Err, Wght, GWidth(E) # SC
+    T, Q, E, I, Err, R(E) # SC
 """
 Base.@kwdef mutable struct cef_datasets
     # single crystal data
-    mag_data_sc         ::Union{DataFrame, Nothing} = nothing
-    susc_data_sc        ::Union{DataFrame, Nothing} = nothing
-    ins_data_sc         ::Union{DataFrame, Nothing} = nothing
-    # polycrystal data
-    mag_data_powder     ::Union{DataFrame, Nothing} = nothing
-    susc_data_powder    ::Union{DataFrame, Nothing} = nothing
-    ins_data_powder     ::Union{DataFrame, Nothing} = nothing
-    # general heatcap data
-    heatcap_data        ::Union{DataFrame, Nothing} = nothing
+    mag_data::Union{DataFrame, Nothing} = nothing
+    susc_data::Union{DataFrame, Nothing} = nothing
+    heatcap_data::Union{DataFrame, Nothing} = nothing
+end
+
+
+function chi2_magnetization(
+    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="atomic"
+    )::Float64
+    chi2::Float64 = 0.0
+    for pnt in eachrow(data)
+        if isequal(pnt.Dir, "x")
+            calc = cef_magnetization(ion,Blm,pnt.T,[pnt.Bext,0,0],units)[1]
+        elseif isequal(pnt.Dir, "y")
+            calc = cef_magnetization(ion,Blm,pnt.T,[0,pnt.Bext,0],units)[2]
+        elseif isequal(pnt.Dir, "z")
+            calc = cef_magnetization(ion,Blm,pnt.T,[0,0,pnt.Bext],units)[3]
+        elseif isequal(pnt.Dir, "powder")
+            calc = cef_magnetization(ion,Blm,pnt.T,pnt.Bext,units)
+        end
+        chi2 += ((calc-pnt.M)/(pnt.Err))^2
+    end
+    chi2
+end
+
+
+function chi2_susceptibility(
+    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="atomic"
+    )::Float64
+    chi2::Float64 = 0.0
+    for pnt in eachrow(data)
+        if isequal(pnt.Dir, "x")
+            calc = cef_susceptibility(ion,Blm,pnt.T,[pnt.Bext,0,0],units)[1]
+        elseif isequal(pnt.Dir, "y")
+            calc = cef_susceptibility(ion,Blm,pnt.T,[0,pnt.Bext,0],units)[2]
+        elseif isequal(pnt.Dir, "z")
+            calc = cef_susceptibility(ion,Blm,pnt.T,[0,0,pnt.Bext],units)[3]
+        elseif isequal(pnt.Dir, "powder")
+            calc = cef_susceptibility(ion,Blm,pnt.T,pnt.Bext,units)
+        end
+        chi2 += ((calc-pnt.Chi)/(pnt.Err))^2
+    end
+    chi2
+end
+
+
+function chi2_heatcap(
+    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="atomic"
+    )::Float64
+    chi2::Float64 = 0.0
+    for pnt in eachrow(data)
+        calc = cef_heatcapacity(ion, Blm, pnt.T, units)
+        chi2 += ((calc-pnt.Cv)/pnt.Err)^2
+    end
+    chi2
 end
 
 
