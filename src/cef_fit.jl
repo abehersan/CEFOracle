@@ -12,19 +12,16 @@ by including weights in the various dataframes as one further restricts
 parameter space
 
 magnetization data
-    T, Bext, M, Dir, Err, Wght          # SC
-    T, Bext, M, Err, Wght               # polycrystal
+    T, Bext, M, Dir, Err
 
 susceptibility data
-    T, Bext, M, Dir, Err, Wght          # SC
-    T, Bext, M, Err, Wght               # polycrystal
+    T, Bext, M, Dir, Err
 
 specific heat data
-    T, Cv, Err, Wght                    # SC
+    T, Cv, Err
 
 inelastic neutron scattering spectra, sc and powder
     T, Bext, Dir, Qx, Qy, Qz, E, I, Err, Wght, GWidth(E)   # SC
-    T, Bext, Qlen, E, I, Err, Wght, GWidth(E)              # polycrystal
 """
 Base.@kwdef mutable struct cef_datasets
     # single crystal data

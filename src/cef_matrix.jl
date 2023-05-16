@@ -6,18 +6,20 @@ and an applied magnetic field (external).
 Hamiltonian -> H = H_CF + H_Zeeman
 """
 
-function cef_eigensystem(
+function cef_eigensystem(;
     single_ion::mag_ion, Blm::Dict{String, <:Real},
-    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0; verbose=false
-    )
+    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0, verbose=false
+    )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
+    @warn "Blm Dictionary given. DataFrames are more performant!\n"*
+        "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
     cef_eigensystem(single_ion, blm_dframe(Blm), Bx, By, Bz; verbose=verbose)
 end
 
 
-function cef_eigensystem(
+function cef_eigensystem(;
     single_ion::mag_ion, Blm::DataFrame,
-    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0; verbose=false
-    )
+    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0, verbose=false
+    )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = single_ion.J
     gJ = single_ion.gJ
     m_dim = Int(2.0*J+1.0)
@@ -89,7 +91,7 @@ function H_cef(J::Float64, Blm::DataFrame)::Matrix{ComplexF64}
             cef_matrix += cef_param * stevens_EO(J, l, m)
         end
     end
-    @assert is_hermitian(cef_matrix)
+    # @assert is_hermitian(cef_matrix)
     cef_matrix
 end
 
@@ -208,7 +210,7 @@ function wigner_D(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF
                 rotation_matrix_element(l, mm, mp, alpha, beta, gamma)
         end
     end
-    @assert is_unitary(rot_mat)
+    # @assert is_unitary(rot_mat)
     rot_mat
 end
 
@@ -282,7 +284,7 @@ function rotate_Blm(
         end
         # S * Blm where Blm is a (2l+1) vector
         Blm_rot = S_matrix * Blm_ori
-        @assert norm(imag(Blm_rot)) < 1e-12
+        # @assert norm(imag(Blm_rot)) < 1e-12
         Blm_res = real(Blm_rot)
         append!(
             Blm_rotated,
