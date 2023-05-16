@@ -86,17 +86,19 @@ and external magnetic field for a given CEF model
 """
 # method: Blm dictionary, single-crystal
 function cef_magnetization(
-    single_ion::mag_ion, Blm::Dict{String, <:Real}, T::Real=2.0, Bext::Vector{<:Real}=[0,0,0]
+    single_ion::mag_ion, Blm::Dict{String, <:Real}, T::Real=2.0,
+    Bext::Vector{<:Real}=[0,0,0], units::String="SI"
     )::Vector{Float64}
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
-    cef_magnetization(single_ion=single_ion, Blm=blm_dframe(Blm), T=T, Bext=Bext)
+    cef_magnetization(single_ion, blm_dframe(Blm), T, Bext, units)
 end
 
 
 # method: Blm DataFrame, single-crystal
 function cef_magnetization(
-    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0, Bext::Vector{<:Real}=[0,0,0]
+    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0,
+    Bext::Vector{<:Real}=[0,0,0], units::String="SI"
     )::Vector{Float64}
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion=single_ion, Blm=Blm,
@@ -113,18 +115,28 @@ function cef_magnetization(
                 J_alpha=spin_ops[a], T=T,
                 )
     end
-    magnetization_vector
+    convfac = begin
+        if isequal(units, "SI")
+            5.5849397           # NA * muB  [J/T/mol]
+        elseif isequal(units, "CGS")
+            5.5849397*1000.0    # NA * muB  [emu/mol]
+        elseif isequal(units, "atomic")
+            1.0
+        end
+    end
+    magnetization_vector .* single_ion.gJ .* convfac
 end
 
 
 # method: Blm DataFrame, polycrystal
 function cef_magnetization(
-    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0, Bext::Real=0.0
+    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0, Bext::Real=0.0, units="SI"
     )::Float64
-    magnetization_vector = cef_magnetization(single_ion,Blm,T,[Bext,0,0]) +
-        cef_magnetization(single_ion,Blm,T,[0,Bext,0]) +
-        cef_magnetization(single_ion,Blm,T,[0,0,Bext])
-    mean(magnetization_vector)
+    magnetization_vector::Vector{Float64} =
+        cef_magnetization(single_ion, Blm, T, [Bext,0,0], units) +
+        cef_magnetization(single_ion, Blm, T, [0,Bext,0], units) +
+        cef_magnetization(single_ion, Blm, T, [0,0,Bext], units)
+    sum(magnetization_vector)/3
 end
 
 
@@ -178,17 +190,19 @@ magnitude of the applied field. Calculations are done for a fixed temperature
 """
 # method: Blm dictionary, single-crystal
 function cef_susceptibility(
-    single_ion::mag_ion, Blm::Dict{String,Float64}, T::Real=2.0, Bext::Vector{<:Real}=[0, 0, 0.05]
+    single_ion::mag_ion, Blm::Dict{String,Float64}, T::Real=2.0,
+    Bext::Vector{<:Real}=[0, 0, 0.05], units="SI"
     )::Vector{Float64}
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
-    cef_susceptibility(single_ion=single_ion, Blm=blm_dframe(Blm), Bext=Bext)
+    cef_susceptibility(single_ion, blm_dframe(Blm), T, Bext, units)
 end
 
 
 # method: Blm DataFrame, single-crystal
 function cef_susceptibility(
-    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0, Bext::Vector{<:Real}=[0, 0, 0.05]
+    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0,
+    Bext::Vector{<:Real}=[0, 0, 0.05], units="SI"
     )::Vector{Float64}
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion=single_ion, Blm=Blm,
@@ -205,18 +219,29 @@ function cef_susceptibility(
             J_alpha=spin_ops[a], T=T,
             )
     end
-    susceptibility_vector
+    convfac = begin
+        if isequal(units, "SI")
+            4.062426*1e-7   # N_A * muB(erg/G) * muB(meV/G)
+        elseif isequal(units, "CGS")
+            0.03232776      # N_A * muB(J/T) * muB(meV/T) * mu0
+        elseif isequal(units, "atomic")
+            1.0
+        end
+    end
+    # Note that chi_SI = (4pi*10^-6)chi_cgs
+    susceptibility_vector .* single_ion.gJ^2 .* convfac
 end
 
 
 # method: Blm DataFrame, polycrystal
 function cef_susceptibility(
-    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0, Bext::Real=0.05
+    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0, Bext::Real=0.05, units="SI"
     )::Float64
-    susceptibility_vector = cef_susceptibility(single_ion, Blm, T, [Bext,0,0])+
-        cef_susceptibility(single_ion, Blm, T, [0,Bext,0])+
-        cef_susceptibility(single_ion, Blm, T, [0,0,Bext])
-    mean(susceptibility_vector)
+    susceptibility_vector::Vector{Float64} =
+        cef_susceptibility(single_ion, Blm, T, [Bext,0,0], units)+
+        cef_susceptibility(single_ion, Blm, T, [0,Bext,0], units)+
+        cef_susceptibility(single_ion, Blm, T, [0,0,Bext], units)
+    sum(susceptibility_vector)/3
 end
 
 
@@ -246,29 +271,46 @@ parametrized by Stevens parameters
 """
 # method: Blm dictionary, single environment
 function cef_heatcapacity(
-    single_ion::mag_ion, Blm::Dict{String, Float64}, T::Real=2.0
+    single_ion::mag_ion, Blm::Dict{String, Float64}, T::Real=2.0, units="SI"
     )::Float64
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
-    cef_heatcap(single_ion=single_ion, Blm=blm_dframe(Blm), T=T)
+    cef_heatcap(single_ion, blm_dframe(Blm), T, units)
 end
 
 
 # method: Blm DataFrame, all levels contribute
 function cef_heatcapacity(
-    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0
+    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0, units="SI"
     )::Float64
     _, cef_energies, _ =
         cef_eigensystem(single_ion=single_ion, Blm=Blm)
-    calc_heatcap(Ep=cef_energies, T=T)
+    convfac = begin
+        if isequal(units, "SI")
+            NA * 1.602176487*1e-22  # NA * muB [J/mol]
+        else
+            @warn "Units not supported in Cv calculations. Use SI, [J/K/mol]"
+            NA * 1.602176487*1e-22  # NA * muB [J/mol]
+        end
+    end
+    calc_heatcap(Ep=cef_energies, T=T) * convfac * kB
 end
 
 
 # method: Blm DataFrame, only levels specified contribute (2J+1 levels in total)
 function cef_heatcapacity_speclevels(
-    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0, levels::UnitRange=1:4
+    single_ion::mag_ion, Blm::DataFrame, T::Real=2.0, levels::UnitRange=1:4,
+    units="SI"
     )::Float64
     _, cef_energies, _ =
         cef_eigensystem(single_ion=single_ion, Blm=Blm)
-    calc_heatcap(Ep=cef_energies[levels], T=T)
+    convfac = begin
+        if isequal(units, "SI")
+            NA * 1.602176487*1e-22  # NA * muB [J/mol]
+        else
+            @warn "Units not supported in Cv calculations. Use SI, [J/K/mol]"
+            NA * 1.602176487*1e-22  # NA * muB [J/mol]
+        end
+    end
+    calc_heatcap(Ep=cef_energies[levels], T=T) * convfac * kB
 end
