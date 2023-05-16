@@ -130,8 +130,8 @@ assumed to be a Voigt profile of fixed Lorentzian width (elastic resolution)
 """
 function TAS_resfunc(
     E::Float64, Ep::Float64,
-    elastic_FWHM::Float64=0.08,
-    inelastic_FWHM::Function=x->0.2
+    elastic_FWHM::Float64=0.09,
+    inelastic_FWHM::Function=x->0.03*x+0.09
     )
     voigt(x=E, A=1.0, mu=Ep, sigma=elastic_FWHM, gamma=inelastic_FWHM(Ep))
 end
