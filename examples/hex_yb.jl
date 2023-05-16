@@ -19,6 +19,21 @@ bdf_B = blm_dframe(bs_modelB)
 
 
 """
+calculate the inelastic neutron scattering x-section at different temperatures
+with model A, reproduces figure 7 of the paper
+"""
+es = LinRange(-12, 12, 150)
+temps = [10.0, 50.0, 200.0]
+ins_plot = plot(xlabel="Energy [meV]", ylabel="I(Q, E)")
+for t in temps
+    ins_xsection = [
+        cef_neutronxsection(yb,bdf_A,e,2.55,t) for e in es
+        ]
+    plot!(es, ins_xsection, label="T=$t K")
+end
+
+
+"""
 calculate the Schottky specific heat capacity for both models
 reproduces figure 8 of the paper
 """
@@ -61,8 +76,7 @@ reproduces figure 14 of the paper
 bext = 0.05
 temps = LinRange(0.5, 300, 150)
 invchi_para = [1/cef_susceptibility(yb,bdf_A,t,[0,0,bext])[3] for t in temps]
-invchi_perp = [1/cef_susceptibility(yb,bdf_A,t,[0,bext,0])[2] for t in temps]
-# invchi_powd = [1/cef_susceptibility(yb,bdf_A,t,bext) for t in temps]
+invchi_perp = [1/cef_susceptibility(yb,bdf_B,t,[0,bext,0])[2] for t in temps]
 invchi_powd = @. (2*invchi_perp + invchi_para)/3
 invchi_plot = plot(
                 temps, [invchi_para invchi_perp invchi_powd],
@@ -72,4 +86,5 @@ invchi_plot = plot(
                 )
 
 
-plot(cv_plot, mag_plot, invchi_plot, layout=(3, 1), legend=true, dpi=300)
+plot(ins_plot, cv_plot, mag_plot, invchi_plot,
+    layout=(2, 2), legend=true, dpi=300)
