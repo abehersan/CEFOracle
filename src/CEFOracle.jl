@@ -19,9 +19,7 @@ export single_ion
 export meV_per_K, mu0, muB, kB, NA, R
 export effective_moment, blm_dframe
 export cef_eigensystem
-export cef_magnetization, cef_susceptibility
-export cef_heatcapacity, cef_heatcapacity_speclevels
-export cef_xsection, TAS_resfunc, gauss, lorentz
+export cef_magnetization, cef_susceptibility, cef_heatcapacity, cef_heatcapacity_speclevels
 
 
 # include source files in module scope
