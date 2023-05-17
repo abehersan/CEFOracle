@@ -286,6 +286,7 @@ function cef_heatcapacity(
     )::Float64
     _, cef_energies, _ =
         cef_eigensystem(single_ion, Blm)
+    cef_energies .-= minimum(cef_energies)
     convfac = begin
         if isequal(units, "SI")
             NA * 1.602176487*1e-22  # NA * muB [J/mol]
@@ -305,6 +306,7 @@ function cef_heatcapacity_speclevels(
     )::Float64
     _, cef_energies, _ =
         cef_eigensystem(single_ion, Blm)
+    cef_energies .-= minimum(cef_energies)
     convfac = begin
         if isequal(units, "SI")
             NA * 1.602176487*1e-22  # NA * muB [J/mol]

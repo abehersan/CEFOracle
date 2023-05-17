@@ -53,7 +53,7 @@ function cef_eigensystem(
 
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
-    cef_energies .-= minimum(cef_energies)
+    # cef_energies .-= minimum(cef_energies)
 
     if verbose
         println("CEF Hamiltonian parameters")
@@ -70,7 +70,7 @@ function cef_eigensystem(
             display(Blm_rot)
         end
         println("CEF-split single-ion energy levels in meV:")
-        display(cef_energies)
+        display(cef_energies .- minimum(cef_energies))
     end
     (cef_matrix, cef_energies, cef_wavefunctions)
 end
