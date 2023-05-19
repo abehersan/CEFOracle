@@ -67,8 +67,7 @@ function cef_neutronxsection(
     )::Float64
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
-    cef_neutronxsection(single_ion=single_ion, Blm=blm_dframe(Blm),
-        T=T, Bext=Bext, R=R, Q=Q, E=E)
+    cef_neutronxsection(single_ion, blm_dframe(Blm), T, Bext, R, Q, E)
 end
 
 
@@ -78,8 +77,7 @@ function cef_neutronxsection(
     T::Float64=2.0, Bext::Vector{<:Real}=[0, 0, 0], R::Function=TAS_resfunc
     )::Float64
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion=single_ion, Blm=Blm,
-            Bx=Bext[1], By=Bext[2], Bz=Bext[3])
+        cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
@@ -104,10 +102,10 @@ end
 # method: Blm DataFrame, polycrystal
 function cef_neutronxsection(
     single_ion::mag_ion, Blm::DataFrame, E::Float64, Q::Real,
-    T::Float64=2.0, Bext::Real=0.0, R::Function=TAS_resfunc
+    T::Float64, Bext::Real=0.0, R::Function=TAS_resfunc
     )::Float64
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion=single_ion, Blm=Blm)
+        cef_eigensystem(single_ion, Blm)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
@@ -132,7 +130,7 @@ function TAS_resfunc(
     E::Float64, Ep::Float64,
     elastic_FWHM::Float64=0.09,
     inelastic_FWHM::Function=x->0.03*x+0.09
-    )
+    )::Float64
     voigt(x=E, A=1.0, mu=Ep, sigma=elastic_FWHM, gamma=inelastic_FWHM(Ep))
 end
 

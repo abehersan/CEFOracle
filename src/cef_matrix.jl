@@ -6,7 +6,7 @@ and an applied magnetic field (external).
 Hamiltonian -> H = H_CF + H_Zeeman
 """
 
-function cef_eigensystem(;
+function cef_eigensystem(
     single_ion::mag_ion, Blm::Dict{String, <:Real},
     Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0, verbose=false
     )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
@@ -16,7 +16,7 @@ function cef_eigensystem(;
 end
 
 
-function cef_eigensystem(;
+function cef_eigensystem(
     single_ion::mag_ion, Blm::DataFrame,
     Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0, verbose=false
     )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
@@ -28,7 +28,7 @@ function cef_eigensystem(;
     cef_energies = zeros(Float64, (m_dim, m_dim))
     cef_wavefunctions = zeros(ComplexF64, (m_dim, m_dim))
 
-    external_field = [Bx, By, Bz]
+    external_field::Vector{<:Real} = [Bx, By, Bz]
     alpha, beta, gamma = get_euler_angles(external_field)
 
     if isequal(zeros(Real, 3), external_field)
@@ -36,24 +36,24 @@ function cef_eigensystem(;
     else
         # The Zeeman Hamiltonian is included in the total Hamiltonian
         # via the O1m operators
-        Blm_wf = copy(Blm)
-        B11 =-muB*Bx*gJ; B1m1 =-muB*By*gJ; B10 =-muB*Bz*gJ
-        Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  1), :Blm] .= B11
-        Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .== -1), :Blm] .= B1m1
-        Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  0), :Blm] .= B10
-        cef_matrix = H_cef(J, Blm_wf)
+        # Blm_wf = copy(Blm)
+        # B11 =-muB*Bx*gJ; B1m1 =-muB*By*gJ; B10 =-muB*Bz*gJ
+        # Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  1), :Blm] .= B11
+        # Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .== -1), :Blm] .= B1m1
+        # Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  0), :Blm] .= B10
+        # cef_matrix = H_cef(J, Blm_wf)
         """
         TODO: verify that the rotation of the CEF Hamiltonian is as
         expected, i.e. that the expectation values of the operators
         in the non-rotated frame are as you would expect...
         """
         # Blm_rot = rotate_Blm(Blm_wf, alpha, beta, gamma)
-        # cef_matrix = H_cef(J, Blm_rot)
+        cef_matrix = H_cef(J, Blm) + H_zeeman(J, gJ, external_field)
     end
 
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
-    cef_energies .-= minimum(cef_energies)
+    # cef_energies .-= minimum(cef_energies)
 
     if verbose
         println("CEF Hamiltonian parameters")
@@ -70,7 +70,7 @@ function cef_eigensystem(;
             display(Blm_rot)
         end
         println("CEF-split single-ion energy levels in meV:")
-        display(cef_energies)
+        display(cef_energies .- minimum(cef_energies))
     end
     (cef_matrix, cef_energies, cef_wavefunctions)
 end
@@ -118,12 +118,12 @@ diagonal and has components
 g = [gx, gy, gz]
 """
 function H_zeeman(
-    J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real}
+    J::Float64, gJ::Vector{<:Real}, external_field::Vector{<:Real}
     )
     Jz = spin_operators(J, "z")
     Jy = spin_operators(J, "y")
     Jx = spin_operators(J, "x")
-    Bx, By, Bz = @. - 1.0 * g * muB * external_field
+    Bx, By, Bz = @. - 1.0 * gJ * muB * external_field
     sum([Bx*Jx, By*Jy, Bz*Jz])
 end
 
