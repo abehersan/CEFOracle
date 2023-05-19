@@ -5,47 +5,47 @@ Miscelaneous utility functions for internal use
 """
 
 
-function effective_moment(single_ion::mag_ion)
+function effective_moment(single_ion::mag_ion)::Float64
     gJ = single_ion.gJ; J = single_ion.J;
-    return gJ * sqrt(J*(J+1.0))
+    gJ * sqrt(J*(J+1.0))
 end
 
 
-function norm_Blm(Blm::DataFrame)
-    return norm(Blm[!, :Blm], 2)
+function norm_Blm(Blm::DataFrame)::Float64
+    norm(Blm[!, :Blm], 2)
 end
 
 
-function is_normalized(Vps::Matrix{ComplexF64})
+function is_normalized(Vps::Matrix{ComplexF64})::Bool
     vecs = size(Vps)[2]
     for v in 1:vecs
         vec = Vps[:, v]
         @assert is_normalized(vec)
     end
-    return true
+    true
 end
 
 
-function is_normalized(v::Vector{ComplexF64})
-    return isapprox(norm(v), 1, atol=1e-12)
+function is_normalized(v::Vector{ComplexF64})::Bool
+    isapprox(norm(v), 1, atol=1e-12)
 end
 
 
-function is_hermitian(A::Matrix{T}) where {T<:Number}
+function is_hermitian(A::Matrix{T})::Bool where {T<:Number}
     n, m = size(A)
     if n != m
         return false
     end
-    return isapprox(A, adjoint(A), atol=1e-12)
+    isapprox(A, adjoint(A), atol=1e-12)
 end
 
 
-function is_unitary(A::Matrix{T}) where T<:Number
-    return isapprox(A * A', I, atol=1e-12) && isapprox(A' * A, I, atol=1e-12)
+function is_unitary(A::Matrix{T})::Bool where T<:Number
+    isapprox(A * A', I, atol=1e-12) && isapprox(A' * A, I, atol=1e-12)
 end
 
 
-function divide_center_element!(A::Matrix{T}, val::Number) where T<:Number
+function divide_center_element!(A::Matrix{T}, val::Number)::Matrix where T<:Number
     m, n = size(A)
     center_row = div(m, 2) + 1
     center_col = div(n, 2) + 1
@@ -53,14 +53,14 @@ function divide_center_element!(A::Matrix{T}, val::Number) where T<:Number
 end
 
 
-function blm_dframe(Blm_dict::Dict{String, <:Number})
+function blm_dframe(Blm_dict::Dict{String, <:Number})::DataFrame
     l, m = parse_blm(collect(keys(Blm_dict)))
     bs = collect(values(Blm_dict))
-    return full_blm_dframe(DataFrame("Blm"=>bs, "l"=>l, "m"=>m))
+    full_blm_dframe(DataFrame("Blm"=>bs, "l"=>l, "m"=>m))
 end
 
 
-function full_blm_dframe(Blm::DataFrame)
+function full_blm_dframe(Blm::DataFrame)::DataFrame
     Blm_full = DataFrame(Blm = Float64[], l = Int[], m = Int[])
     for l in [1, 2, 4, 6]
         Blm_fl = zeros(Float64, Int(2l+1))
@@ -78,7 +78,7 @@ function full_blm_dframe(Blm::DataFrame)
             DataFrame("Blm"=>Blm_fl, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l)
             )
     end
-    return Blm_full
+    Blm_full
 end
 
 
@@ -90,7 +90,7 @@ function parse_blm(b::String)
         l = parse(Int, b[2])
         m = parse(Int, b[end])
     end
-    return l, m
+    l, m
 end
 
 
@@ -102,7 +102,7 @@ function parse_blm(b_vec::Vector{String})
         push!(l_vec, l)
         push!(m_vec, m)
     end
-    return l_vec, m_vec
+    l_vec, m_vec
 end
 
 
