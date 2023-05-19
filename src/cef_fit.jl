@@ -70,17 +70,15 @@ function chi2_susceptibility(
         elseif isequal(direction, "powder")
             calc = cef_susceptibility(ion,Blm,pnt.T,pnt.Bext,units)
         end
-        # fit chi
-        chi2 += ((calc-pnt.Chi)/(pnt.Err))^2
         # fit chi T
-        # chi2 += ((calc*pnt.T-pnt.Chi*pnt.T)/(pnt.Err))^2
+        chi2 += ((calc*pnt.T-pnt.Chi*pnt.T)/(pnt.Err))^2
     end
     chi2
 end
 
 
 function chi2_heatcap(
-    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="SI"
+    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="atomic"
     )::Float64
     chi2::Float64 = 0.0
     for pnt in eachrow(data)
@@ -89,12 +87,6 @@ function chi2_heatcap(
     end
     chi2
 end
-
-
-"""
-TODO: chi2 function for fitting CEF parameters to peaks found in INS
-TODO: chi2 function for fitting CEF parameters to peaks and widths in INS
-"""
 
 
 """
