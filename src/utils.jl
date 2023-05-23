@@ -53,13 +53,6 @@ function divide_center_element!(A::Matrix{<:Number}, val::Number)::Matrix
 end
 
 
-function blm_dframe!(Blm_dict::Dict{String, <:Real})::DataFrame
-    l, m = parse_blm(collect(keys(Blm_dict)))
-    bs = collect(values(Blm_dict))
-    Blm_dict = DataFrame("Blm"=>bs, "l"=>l, "m"=>m)
-end
-
-
 function blm_dframe(Blm_dict::Dict{String, <:Real})::DataFrame
     l, m = parse_blm(collect(keys(Blm_dict)))
     bs = collect(values(Blm_dict))
