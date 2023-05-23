@@ -31,7 +31,7 @@ function is_normalized(v::Vector{ComplexF64})::Bool
 end
 
 
-function is_hermitian(A::Matrix{T})::Bool where {T<:Number}
+function is_hermitian(A::Matrix{<:Number})::Bool
     n, m = size(A)
     if n != m
         return false
@@ -40,12 +40,12 @@ function is_hermitian(A::Matrix{T})::Bool where {T<:Number}
 end
 
 
-function is_unitary(A::Matrix{T})::Bool where T<:Number
+function is_unitary(A::Matrix{<:Number})::Bool
     isapprox(A * A', I, atol=1e-12) && isapprox(A' * A, I, atol=1e-12)
 end
 
 
-function divide_center_element!(A::Matrix{T}, val::Number)::Matrix where T<:Number
+function divide_center_element!(A::Matrix{<:Number}, val::Number)::Matrix
     m, n = size(A)
     center_row = div(m, 2) + 1
     center_col = div(n, 2) + 1
@@ -53,10 +53,41 @@ function divide_center_element!(A::Matrix{T}, val::Number)::Matrix where T<:Numb
 end
 
 
-function blm_dframe(Blm_dict::Dict{String, <:Number})::DataFrame
+function blm_dframe!(Blm_dict::Dict{String, <:Real})::DataFrame
     l, m = parse_blm(collect(keys(Blm_dict)))
     bs = collect(values(Blm_dict))
-    full_blm_dframe(DataFrame("Blm"=>bs, "l"=>l, "m"=>m))
+    Blm_dict = DataFrame("Blm"=>bs, "l"=>l, "m"=>m)
+end
+
+
+function blm_dframe(Blm_dict::Dict{String, <:Real})::DataFrame
+    l, m = parse_blm(collect(keys(Blm_dict)))
+    bs = collect(values(Blm_dict))
+    DataFrame("Blm"=>bs, "l"=>l, "m"=>m)
+end
+
+
+function parse_blm(b::String)::Tuple{Int, Int}
+    if b[3] == 'm'
+        l = parse(Int, b[2])
+        m = -1*parse(Int, b[end])
+    else
+        l = parse(Int, b[2])
+        m = parse(Int, b[end])
+    end
+    l, m
+end
+
+
+function parse_blm(b_vec::Vector)::Tuple{Vector, Vector}
+    l_vec = Int[]
+    m_vec = Int[]
+    for b in b_vec
+        l, m = parse_blm(b)
+        push!(l_vec, l)
+        push!(m_vec, m)
+    end
+    l_vec, m_vec
 end
 
 
@@ -79,30 +110,6 @@ function full_blm_dframe(Blm::DataFrame)::DataFrame
             )
     end
     Blm_full
-end
-
-
-function parse_blm(b::String)
-    if b[3] == 'm'
-        l = parse(Int, b[2])
-        m = -1*parse(Int, b[end])
-    else
-        l = parse(Int, b[2])
-        m = parse(Int, b[end])
-    end
-    l, m
-end
-
-
-function parse_blm(b_vec::Vector{String})
-    l_vec = Int[]
-    m_vec = Int[]
-    for b in b_vec
-        l, m = parse_blm(b)
-        push!(l_vec, l)
-        push!(m_vec, m)
-    end
-    l_vec, m_vec
 end
 
 

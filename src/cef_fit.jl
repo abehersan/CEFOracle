@@ -34,9 +34,8 @@ Base.@kwdef mutable struct cef_datasets
 end
 
 
-function chi2_magnetization(
-    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="atomic"
-    )::Float64
+function chi2_magnetization(ion::mag_ion, Blm::DataFrame, data::DataFrame,
+    units::String="atomic")::Float64
     chi2::Float64 = 0.0
     for pnt in eachrow(data)
         direction::String = pnt.Dir
@@ -55,9 +54,8 @@ function chi2_magnetization(
 end
 
 
-function chi2_susceptibility(
-    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="CGS"
-    )::Float64
+function chi2_susceptibility(ion::mag_ion, Blm::DataFrame, data::DataFrame,
+    units::String="CGS")::Float64
     chi2::Float64 = 0.0
     for pnt in eachrow(data)
         direction::String = pnt.Dir
