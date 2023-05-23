@@ -8,7 +8,7 @@ Hamiltonian -> H = H_CF + H_Zeeman
 
 function cef_eigensystem(
     single_ion::mag_ion, Blm::Dict{String, <:Real},
-    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0, verbose=false
+    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0; verbose=false
     )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
@@ -18,7 +18,7 @@ end
 
 function cef_eigensystem(
     single_ion::mag_ion, Blm::DataFrame,
-    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0, verbose=false
+    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0; verbose=false
     )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = single_ion.J
     gJ = single_ion.gJ
