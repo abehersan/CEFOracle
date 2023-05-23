@@ -76,8 +76,8 @@ reproduces figure 14 of the paper
 """
 bext = 0.05
 temps = LinRange(0.5, 300, 150)
-invchi_para = [1/cef_susceptibility(yb,bdf_A,t,[0,0,bext],"atomic")[3] for t in temps]
-invchi_perp = [1/cef_susceptibility(yb,bdf_A,t,[bext,0,0],"atomic")[1] for t in temps]
+invchi_para = [1/cef_susceptibility(yb,bdf_A,t,[0,0,bext],"CGS")[3] for t in temps]
+invchi_perp = [1/cef_susceptibility(yb,bdf_A,t,[bext,0,0],"CGS")[1] for t in temps]
 # invchi_powd = [1/cef_susceptibility(yb,bdf_A,t,bext, "CGS") for t in temps]
 invchi_powd = (2/3 .* invchi_perp + 1/3 .* invchi_para)
 invchi_plot = plot(
