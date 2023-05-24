@@ -19,7 +19,7 @@ export cef_eigensystem
 export cef_magnetization, cef_susceptibility
 export cef_heatcapacity, cef_heatcapacity_speclevels
 export TAS_res, voigt, gauss, lorentz, cef_neutronxsection
-export cef_datasets
+export cef_datasets, chi2_cef
 
 
 # include source files in module scope

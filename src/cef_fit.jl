@@ -103,8 +103,7 @@ given a cef_datasets struct, compute chi2(bs::Vector{<:Real}, ps::Vector{Any}),
 where bs is a vector of CEF parameters and ps are additional hyperparameters,
 such as the magnetic ion and the statistical weight of each dataset
 """
-function chi2(
-    ion::mag_ion, Blm::DataFrame, dsets::cef_datasets;
+function chi2_cef(ion::mag_ion, Blm::DataFrame, dsets::cef_datasets;
     mag_weight::Float64=1.0, susc_weight::Float64=1.0, cv_weight::Float64=1.0
     )::Float64
     chi2::Float64 = 0.0
