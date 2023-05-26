@@ -42,6 +42,7 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
         display(Blm)
         println("CEF-split single-ion energy levels in meV:")
         display(cef_energies .- minimum(cef_energies))
+        return
     end
     (cef_matrix, cef_energies, cef_wavefunctions)
 end
@@ -74,16 +75,16 @@ end
 
 
 """
-Zeeman Hamiltonian given a spin magnitude.
+Zeeman Hamiltonian given an ion with a possible vector g-factor
 The system is assumed in the eigenframe of the g-tensor such that it is
 diagonal and has components
 g = [gx, gy, gz]
 """
-function H_zeeman(J::Float64, gJ::Vector{<:Real}, external_field::Vector{<:Real})
-    Jz = spin_operators(J, "z")
-    Jy = spin_operators(J, "y")
-    Jx = spin_operators(J, "x")
-    Bx, By, Bz = @. - 1.0 * gJ * muB * external_field
+function H_zeeman(ion::mag_ion, external_field::Vector{<:Real})
+    Jz = spin_operators(ion.J, "z")
+    Jy = spin_operators(ion.J, "y")
+    Jx = spin_operators(ion.J, "x")
+    Bx, By, Bz = @. - 1.0 * ion.gJ * muB * external_field
     sum([Bx*Jx, By*Jy, Bz*Jz])
 end
 

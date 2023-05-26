@@ -6,7 +6,7 @@ Calculate magnetic properties given the Hamiltonian: H = H_CEF + H_Zeeman
 
 
 """
-Calculate the Boltzmann population factors defined as
+Calculate Boltzmann thermal occupation factors defined as
 np = e^(-Ep / kBT)/Z, for all eigenenergies Ep of a Hamiltonian
 the partition function is Z
 """
@@ -26,9 +26,9 @@ partition_function(Ep::Vector{Float64}, T::Float64)::Float64 =
 Calculate <n|O|m>, where n and m are some eigenvectors of the Hamiltonian
 and O is a hetmitian operator
 """
-function transition_matrix_element(;
-    n::Vector{ComplexF64}, m::Vector{ComplexF64}, operator::Matrix{ComplexF64}
-    )::Float64
+function transition_matrix_element(; n::Vector{ComplexF64},
+                                  m::Vector{ComplexF64},
+                                  operator::Matrix{ComplexF64})::Float64
     t_mel = adjoint(n)*operator*m
     # @assert norm(imag(t_mel)) < 1e-12
     t_mel.re
@@ -41,8 +41,8 @@ where |p> are the eigenstates of a Hamiltonian and np are the respective
 populations factors at finite temperature
 """
 function thermal_average(Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
-    operator::Matrix{ComplexF64}, T::Float64)::Float64
-    matrix_elements = zeros(Float64, length(Ep))
+                        operator::Matrix{ComplexF64}, T::Float64)::Float64
+                        matrix_elements = zeros(Float64, length(Ep))
     for p in eachindex(Ep)
         matrix_elements[p] = transition_matrix_element(
             n=Vp[:,p], operator=operator, m=Vp[:,p])
@@ -62,7 +62,7 @@ and equivalently equation 9.23 of Furrer/Messot/Strässle
 <J_alpha> = sum_p np <p| J_alpha |p>
 """
 function calc_magnetization(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
-    J_alpha::Matrix{ComplexF64}, T::Real)::Float64
+                           J_alpha::Matrix{ComplexF64}, T::Real)::Float64
     thermal_average(Ep, Vp, J_alpha, T)
 end
 
@@ -76,7 +76,8 @@ and external magnetic field for a given CEF model
 """
 # method: Blm dictionary, single-crystal
 function cef_magnetization(single_ion::mag_ion, Blm::Dict{String, <:Real},
-    T::Real, Bext::Vector{<:Real}, units::String="SI")::Vector{Float64}
+                          T::Real, Bext::Vector{<:Real},
+                          units::String="SI")::Vector{Float64}
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
     cef_magnetization(single_ion, blm_dframe(Blm), T, Bext, units)
@@ -85,7 +86,8 @@ end
 
 # method: Blm DataFrame, single-crystal
 function cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real,
-    Bext::Vector{<:Real}, units::String="SI")::Vector{Float64}
+                          Bext::Vector{<:Real},
+                          units::String="SI")::Vector{Float64}
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
     cef_energies .-= minimum(cef_energies)
@@ -114,12 +116,11 @@ end
 
 # method: Blm DataFrame, polycrystal
 function cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real,
-    Bext::Real, units::String="SI")::Float64
+                          Bext::Real, units::String="SI")::Float64
     magnetization_vector::Vector{Float64} =
         cef_magnetization(single_ion, Blm, T, [Bext,0,0], units) +
         cef_magnetization(single_ion, Blm, T, [0,Bext,0], units) +
         cef_magnetization(single_ion, Blm, T, [0,0,Bext], units)
-    # sum(magnetization_vector)/3
     mean(magnetization_vector)
 end
 
@@ -135,7 +136,7 @@ Rare earth magnetism. Oxford: Clarendon Press.
 Equivalently, implementation of equation 9.24 of Furrer/Messot/Strässle
 """
 function calc_susceptibility(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
-    J_alpha::Matrix{ComplexF64}, T::Float64)::Float64
+                            J_alpha::Matrix{ComplexF64}, T::Float64)::Float64
     chi_alphaalpha::Float64 = 0.0
     np_all = population_factor(Ep, T) # 2J+1 vector
     for (p, ep) in enumerate(Ep), (pp, epp) in enumerate(Ep)
@@ -177,7 +178,8 @@ end
 
 # method: Blm DataFrame, single-crystal
 function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real,
-    Bext::Vector{<:Real}, units::String="SI")::Vector{Float64}
+                           Bext::Vector{<:Real},
+                           units::String="SI")::Vector{Float64}
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
     cef_energies .-= minimum(cef_energies)
@@ -209,12 +211,11 @@ end
 
 # method: Blm DataFrame, polycrystal
 function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real,
-    Bext::Real, units::String="SI")::Float64
+                           Bext::Real, units::String="SI")::Float64
     susceptibility_vector::Vector{Float64} =
         cef_susceptibility(single_ion, Blm, T, [Bext,0,0], units)+
         cef_susceptibility(single_ion, Blm, T, [0,Bext,0], units)+
         cef_susceptibility(single_ion, Blm, T, [0,0,Bext], units)
-    # sum(susceptibility_vector)/3
     mean(susceptibility_vector)
 end
 
@@ -242,7 +243,7 @@ parametrized by Stevens parameters
 """
 # method: Blm dictionary, single environment
 function cef_heatcapacity(single_ion::mag_ion, Blm::Dict{String, Float64},
-    T::Real, units::String="SI")::Float64
+                         T::Real, units::String="SI")::Float64
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
     cef_heatcap(single_ion, blm_dframe(Blm), T, units)
@@ -251,9 +252,8 @@ end
 
 # method: Blm DataFrame, all levels contribute
 function cef_heatcapacity(single_ion::mag_ion, Blm::DataFrame, T::Real,
-    units::String="SI")::Float64
-    _, cef_energies, _ =
-        cef_eigensystem(single_ion, Blm)
+                         units::String="SI")::Float64
+    _, cef_energies, _ = cef_eigensystem(single_ion, Blm)
     cef_energies .-= minimum(cef_energies)
     convfac = begin
         if isequal(units, "SI")
@@ -269,9 +269,9 @@ end
 
 # method: Blm DataFrame, only levels specified contribute (2J+1 levels in total)
 function cef_heatcapacity_speclevels(single_ion::mag_ion, Blm::DataFrame,
-    T::Real, levels::UnitRange=1:4, units::String="SI")::Float64
-    _, cef_energies, _ =
-        cef_eigensystem(single_ion, Blm)
+                                    T::Real, levels::UnitRange=1:4,
+                                    units::String="SI")::Float64
+    _, cef_energies, _ = cef_eigensystem(single_ion, Blm)
     cef_energies .-= minimum(cef_energies)
     convfac = begin
         if isequal(units, "SI")

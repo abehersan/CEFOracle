@@ -6,12 +6,12 @@ Creates a fit interface between CEF calculations and a general measured datasets
 
 
 Base.@kwdef mutable struct cef_datasets
-    ion             ::Union{mag_ion, Nothing} = nothing
-    blm             ::Union{DataFrame, Nothing} = nothing
-    mag_data        ::Union{DataFrame, Nothing} = nothing
-    chi_data        ::Union{DataFrame, Nothing} = nothing
-    ins_data        ::Union{DataFrame, Nothing} = nothing
-    cpv_data        ::Union{DataFrame, Nothing} = nothing
+    ion     ::Union{mag_ion, Nothing} = nothing
+    blm     ::Union{DataFrame, Nothing} = nothing
+    mag_data::Union{DataFrame, Nothing} = nothing
+    chi_data::Union{DataFrame, Nothing} = nothing
+    ins_data::Union{DataFrame, Nothing} = nothing
+    cpv_data::Union{DataFrame, Nothing} = nothing
 end
 
 
@@ -38,7 +38,7 @@ end
 
 
 function chi2_susceptibility(ion::mag_ion, Blm::DataFrame, data::DataFrame,
-                            units::String="CGS")::Float64
+                            units::String="CGS", scale::String="chi")::Float64
     chi2::Float64 = 0.0
     for pnt in eachrow(data)
         direction::String = pnt.Dir
@@ -53,14 +53,22 @@ function chi2_susceptibility(ion::mag_ion, Blm::DataFrame, data::DataFrame,
                 cef_susceptibility(ion,Blm,pnt.T,pnt.Bext,units)
             end
         end
-        chi2 += ((calc-pnt.Chi)/(pnt.Err))^2
+        chi2 += begin
+            if scale == "chi"
+                ((calc - pnt.Chi)/(pnt.Err))^2
+            elseif scale == "1/chi"
+                ((1/calc - 1/pnt.Chi)/(pnt.Err))^2
+            elseif scale == "chiT"
+                ((calc*pnt.T - pnt.Chi*pnt.T)/(pnt.Err))^2
+            end
+        end
     end
     chi2
 end
 
 
 function chi2_heatcap(ion::mag_ion, Blm::DataFrame, data::DataFrame,
-                     units::String="atomic")::Float64
+                     units::String="SI")::Float64
     chi2::Float64 = 0.0
     for pnt in eachrow(data)
         calc = cef_heatcapacity(ion, Blm, pnt.T, units)
@@ -71,19 +79,21 @@ end
 
 
 """given a cef_datasets struct, compute chi^2"""
-function chi2_cef(dsets::cef_datasets; mag_weight::Float64=1.0,
-                 susc_weight::Float64=1.0, cv_weight::Float64=1.0)::Float64
+function chi2_cef(dsets::cef_datasets;
+                 mag_weight::Float64=1.0, mag_units="atomic",
+                 chi_weight::Float64=1.0, chi_units="CGS", chi_scale="chi",
+                 cpv_weight::Float64=1.0, cpv_units="SI")::Float64
     chi2::Float64 = 0.0
-    ion::mag_ion = dsets.ion; blm = dsets.blm;
+    ion::mag_ion = dsets.ion
+    blm = dsets.blm
     if !isnothing(dsets.mag_data)
-        chi2 += chi2_magnetization(ion, blm, dsets.mag_data) * mag_weight
-    elseif !isnothing(dsets.chi_data)
-        chi2 += chi2_susceptibility(ion, blm, dsets.chi_data) * susc_weight
-    elseif !isnothing(dsets.cpv_data)
-        chi2 += chi2_heatcap(ion, blm, dsets.cpv_data) * cv_weight
-    elseif !isnothing(dsets.ins_data)
-        # TODO: implement chi2_ins
-        chi2 += 0
+        chi2 += chi2_magnetization(ion, blm, dsets.mag_data, mag_units) * mag_weight
+    end
+    if !isnothing(dsets.chi_data)
+        chi2 += chi2_susceptibility(ion, blm, dsets.chi_data, chi_units, chi_scale) * susc_weight
+    end
+    if !isnothing(dsets.cpv_data)
+        chi2 += chi2_heatcap(ion, blm, dsets.cpv_data, cpv_units) * cpv_weight
     end
     chi2
 end

@@ -28,8 +28,9 @@ Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
 and eqn. (8.11) of Boothroyd
 """
 function calc_S_alphabeta(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
-    R::Function, E::Float64, T::Float64,
-    J_alpha::Matrix{ComplexF64}, J_beta::Matrix{ComplexF64})::Float64
+                         R::Function, E::Float64, T::Float64,
+                         J_alpha::Matrix{ComplexF64},
+                         J_beta::Matrix{ComplexF64})::Float64
     if E < 0.0 # detailed balance
         return calc_S_alphabeta(Ep=Ep, Vp=Vp, R=R, E=abs(E), T=T,
                     J_alpha=J_alpha, J_beta=J_beta) * exp(-abs(E)/(kB*T))
@@ -56,8 +57,9 @@ and crystal-field Hamiltonian
 """
 # method: Blm dictionary, single-crystal
 function cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, <:Real},
-    E::Float64, Q::Vector{<:Real}, T::Float64=2.0,
-    Bext::Vector{<:Real}=[0, 0, 0], R::Function=TAS_resfunc)::Float64
+                            E::Float64, Q::Vector{<:Real}, T::Float64=2.0,
+                            Bext::Vector{<:Real}=[0, 0, 0],
+                            R::Function=TAS_resfunc)::Float64
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
     cef_neutronxsection(single_ion, blm_dframe(Blm), T, Bext, R, Q, E)
@@ -66,8 +68,9 @@ end
 
 # method: Blm DataFrame, single-crystal, 8.11 of Boothroyd
 function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64,
-    Q::Vector{<:Real}, T::Float64=2.0, Bext::Vector{<:Real}=[0, 0, 0],
-    R::Function=TAS_resfunc)::Float64
+                            Q::Vector{<:Real}, T::Float64=2.0,
+                            Bext::Vector{<:Real}=[0, 0, 0],
+                            R::Function=TAS_resfunc)::Float64
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
     cef_energies .-= minimum(cef_energies)
@@ -93,7 +96,8 @@ end
 
 # method: Blm DataFrame, polycrystal, 8.12 of Boothroyd
 function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64,
-    Q::Real, T::Float64, Bext::Real=0.0, R::Function=TAS_resfunc)::Float64
+                            Q::Real, T::Float64, Bext::Real=0.0,
+                            R::Function=TAS_resfunc)::Float64
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm)
     cef_energies .-= minimum(cef_energies)
