@@ -12,28 +12,26 @@ using Optimization, OptimizationNLopt, OptimizationOptimJL
 
 function plot_chi(cef_data::cef_datasets)
     chi_data::DataFrame = cef_data.chi_data
-    gchi_data = groupby(chi_data, :Dir)
     ion::mag_ion = cef_data.ion; blm::DataFrame = cef_data.blm
     chi_plot = plot(xlabel="Temperature [K]", ylabel="Chi [cm^3/mol]")
-    @df chi_data scatter!(chi_plot, :Chi, :T, yerr=:Err, group=:Dir, m=:x)
-    for ((; dir), single_df) in pairs(gchi_data)
+    # @df chi_data scatter!(chi_plot, :T, :Chi, yerr=:Err, group=:Dir, m=:x)
+    for ((; Dir), single_df) in pairs(groupby(chi_data, :Dir))
         x_calc = single_df.T
         y_calc = zeros(nrow(single_df))
         for (i, pnt) in enumerate(eachrow(single_df))
-            bext = begin
-                if dir == "a"
-                    [pnt.B, 0, 0]
-                elseif dir == "b"
-                    [0, pnt.B, 0]
-                elseif dir == "c"
-                    [0, 0, pnt.B]
-                elseif dir == "p"
-                    pnt.B
+            y_calc[i] = begin
+                if Dir == "a"
+                    cef_susceptibility(ion, blm, pnt.T, [pnt.Bext, 0, 0])[1]
+                elseif Dir == "b"
+                    cef_susceptibility(ion, blm, pnt.T, [0, pnt.Bext, 0])[2]
+                elseif Dir == "c"
+                    cef_susceptibility(ion, blm, pnt.T, [0, 0, pnt.Bext])[3]
+                elseif Dir == "p"
+                    cef_susceptibility(ion, blm, pnt.T, pnt.Bext)
                 end
             end
-            y_calc[i] = cef_susceptibility(ion, blm, pnt.T, bext)
         end
-        plot!(chi_plot, x_calc, y_calc, label="$dir")
+        plot!(chi_plot, x_calc, y_calc, label="$Dir")
     end
     chi_plot
 end
@@ -49,21 +47,24 @@ function cef_objective(u::Vector, p::Vector)::Real
     # p = [ion, cef_data, blm_symbols, np]
     ion::mag_ion, cef_data::cef_datasets, blm_symbols::Vector, np::Int = p
     bs_dframe = blm_dframe(Dict((s, v) for (s, v) in zip(blm_symbols, u)))
-    chi2_cef(cef_data)/(np - length(u)), cef_data
+    chi2_cef(cef_data)/(np - length(u))#, cef_data
 end
 
 
 # function main()
     ho = single_ion("Ho3")
-    initial_bs = Dict("B20"=> -0.05575208878804679,
-                      "B40"=> -4.636243790111825e-6,
-                      "B43"=> -8.660454382441345e-7,
-                      "B4m3"=>-3.870452739528808e-7,
-                      "B60"=> -0.0025412414866357196,
-                      "B63"=> +3.087773150542659e-5,
-                      "B6m3"=>-0.00011623123127658234,
-                      "B66"=> -0.011212321320726323,
-                      "B6m6"=>+8.75185498259519e-8)
+    alpha = ho.stevens_factors[1]*1e0
+    beta = ho.stevens_factors[2]*1e0
+    gamma = ho.stevens_factors[3]*1e0
+    initial_bs = Dict("B20"=>-1.80/alpha,
+                     "B4m3"=>+12.29/beta,
+                     "B40"=> +6.69/beta,
+                     "B43"=> +6.78/beta,
+                     "B6m6"=>+32.63/gamma,
+                     "B6m3"=>+22.22/gamma,
+                     "B60"=> +0.42/gamma,
+                     "B63"=> +7.59/gamma,
+                     "B66"=> +8.453/gamma)
     bdf = blm_dframe(initial_bs)
     b_pars = collect(values(initial_bs))
     b_syms = collect(keys(initial_bs))
@@ -78,7 +79,7 @@ end
     np = nrow(hobr3_chi_data) + nrow(hobr3_mag_data)
     p = [ho, hobr3_all_data, b_syms, np]
 
-    println("Initial Chi2/NDOF: $(cef_objective(b_pars, p))[1]")
+    println("Initial Chi2/NDOF: $(cef_objective(b_pars, p))")
     plot_chi(hobr3_all_data)
 
     # opt_func = OptimizationFunction(cef_objective, syms=b_syms)
