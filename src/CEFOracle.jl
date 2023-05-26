@@ -5,6 +5,7 @@ module CEFOracle
 using DataFrames
 using LinearAlgebra
 using Logging
+using RecipesBase
 using SpecialFunctions
 using StaticArrays
 using Statistics
