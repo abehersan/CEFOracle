@@ -31,7 +31,7 @@ function chi2_magnetization(ion::mag_ion, Blm::DataFrame, data::DataFrame,
                 cef_magnetization(ion,Blm,pnt.T,pnt.Bext,units)
             end
         end
-        chi2 += ((calc-pnt.Chi)/(pnt.Err))^2
+        chi2 += ((calc-pnt.Mag)/(pnt.Err))^2
     end
     chi2
 end

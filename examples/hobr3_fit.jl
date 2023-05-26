@@ -53,7 +53,7 @@ function cef_objective(u::Vector, p::Vector)::Real
 end
 
 
-function main()
+# function main()
     ho = single_ion("Ho3")
     initial_bs = Dict("B20"=> -0.05575208878804679,
                       "B40"=> -4.636243790111825e-6,
@@ -74,7 +74,7 @@ function main()
     hobr3_chi_data = DataFrame(CSV.File(data_path*"HoBr3/HoBr3_chi_all.csv"))
     hobr3_mag_data = DataFrame(CSV.File(data_path*"HoBr3/HoBr3_mag_all.csv"))
     hobr3_all_data = cef_datasets(ion=ho, blm=bdf, mag_data=hobr3_mag_data,
-                                  susc_data=hobr3_chi_data)
+                                  chi_data=hobr3_chi_data)
     np = nrow(hobr3_chi_data) + nrow(hobr3_mag_data)
     p = [ho, hobr3_all_data, b_syms, np]
 
@@ -89,7 +89,7 @@ function main()
     #                                              n_particles=70),
     #                show_trace=true, show_every=15, maxiters=1e6, maxtime=Inf)
 
-end
+# end
 
 
-main()
+# main()
