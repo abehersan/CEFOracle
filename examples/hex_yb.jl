@@ -3,9 +3,7 @@ Reproduction of results from Rotter, Bauer paper, CEF model A
 """
 
 
-using CEFOracle
-using LaTeXStrings
-using Plots
+using CEFOracle, LaTeXStrings, Plots
 gr()
 
 

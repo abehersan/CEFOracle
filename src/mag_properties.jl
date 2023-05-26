@@ -88,6 +88,7 @@ function cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real,
     Bext::Vector{<:Real}, units::String="SI")::Vector{Float64}
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
+    cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
@@ -118,7 +119,8 @@ function cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real,
         cef_magnetization(single_ion, Blm, T, [Bext,0,0], units) +
         cef_magnetization(single_ion, Blm, T, [0,Bext,0], units) +
         cef_magnetization(single_ion, Blm, T, [0,0,Bext], units)
-    sum(magnetization_vector)/3
+    # sum(magnetization_vector)/3
+    mean(magnetization_vector)
 end
 
 
@@ -178,6 +180,7 @@ function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real,
     Bext::Vector{<:Real}, units::String="SI")::Vector{Float64}
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
+    cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
@@ -211,7 +214,8 @@ function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real,
         cef_susceptibility(single_ion, Blm, T, [Bext,0,0], units)+
         cef_susceptibility(single_ion, Blm, T, [0,Bext,0], units)+
         cef_susceptibility(single_ion, Blm, T, [0,0,Bext], units)
-    sum(susceptibility_vector)/3
+    # sum(susceptibility_vector)/3
+    mean(susceptibility_vector)
 end
 
 

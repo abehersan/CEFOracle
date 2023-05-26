@@ -70,6 +70,7 @@ function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64,
     R::Function=TAS_resfunc)::Float64
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
+    cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
@@ -95,6 +96,7 @@ function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64,
     Q::Real, T::Float64, Bext::Real=0.0, R::Function=TAS_resfunc)::Float64
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm)
+    cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
@@ -135,4 +137,4 @@ gauss(; x::Real, A::Real, mu::Real, sigma::Real)::Float64 =
 
 
 lorentz(; x::Real, A::Real, mu::Real, sigma::Real)::Float64 =
-    A / pi * (sigma / ( (x-mu)^2 + sigma^2 ))
+    A / pi * (sigma / ( (x-mu)^2 + sigma^2 ) )

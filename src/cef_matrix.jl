@@ -33,10 +33,11 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
     # @assert is_hermitian(cef_matrix)
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
+    # cef_energies .-= minimum(cef_energies)
     if verbose
         println("CEF Hamiltonian parameters")
-        println("External field in Tesla:
-            [Bx, By, Bz] = $external_field")
+        println("External field in Tesla:")
+        println("[Bx, By, Bz] = $external_field")
         println("CEF parameters:")
         display(Blm)
         println("CEF-split single-ion energy levels in meV:")

@@ -34,8 +34,9 @@ Base.@kwdef mutable struct cef_datasets
 end
 
 
-function chi2_magnetization(ion::mag_ion, Blm::DataFrame, data::DataFrame,
-    units::String="atomic")::Float64
+function chi2_magnetization(
+    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="atomic"
+    )::Float64
     chi2::Float64 = 0.0
     for pnt in eachrow(data)
         direction::String = pnt.Dir
@@ -54,8 +55,9 @@ function chi2_magnetization(ion::mag_ion, Blm::DataFrame, data::DataFrame,
 end
 
 
-function chi2_susceptibility(ion::mag_ion, Blm::DataFrame, data::DataFrame,
-    units::String="CGS")::Float64
+function chi2_susceptibility(
+    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="CGS"
+    )::Float64
     chi2::Float64 = 0.0
     for pnt in eachrow(data)
         direction::String = pnt.Dir
@@ -68,17 +70,15 @@ function chi2_susceptibility(ion::mag_ion, Blm::DataFrame, data::DataFrame,
         elseif isequal(direction, "powder")
             calc = cef_susceptibility(ion,Blm,pnt.T,pnt.Bext,units)
         end
-        # fit chi
-        chi2 += ((calc-pnt.Chi)/(pnt.Err))^2
         # fit chi T
-        # chi2 += ((calc*pnt.T-pnt.Chi*pnt.T)/(pnt.Err))^2
+        chi2 += ((calc*pnt.T-pnt.Chi*pnt.T)/(pnt.Err))^2
     end
     chi2
 end
 
 
 function chi2_heatcap(
-    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="SI"
+    ion::mag_ion, Blm::DataFrame, data::DataFrame, units::String="atomic"
     )::Float64
     chi2::Float64 = 0.0
     for pnt in eachrow(data)
@@ -90,20 +90,10 @@ end
 
 
 """
-TODO: chi2 function for fitting CEF parameters to peaks found in INS
+given a cef_datasets struct, compute chi^2
 """
-
-"""
-TODO: chi2 function for fitting CEF parameters to peaks and widths in INS
-"""
-
-
-"""
-given a cef_datasets struct, compute chi2(bs::Vector{<:Real}, ps::Vector{Any}),
-where bs is a vector of CEF parameters and ps are additional hyperparameters,
-such as the magnetic ion and the statistical weight of each dataset
-"""
-function chi2_cef(ion::mag_ion, Blm::DataFrame, dsets::cef_datasets;
+function chi2(
+    ion::mag_ion, Blm::DataFrame, dsets::cef_datasets;
     mag_weight::Float64=1.0, susc_weight::Float64=1.0, cv_weight::Float64=1.0
     )::Float64
     chi2::Float64 = 0.0
