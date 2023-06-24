@@ -33,7 +33,7 @@ function plot_chi(cef_data::cef_datasets)
         end
         plot!(chi_plot, x_calc, y_calc, label="$Dir")
     end
-    chi_plot
+    display(chi_plot)
 end
 
 
@@ -42,7 +42,7 @@ function callback(p, chi2, cef_data)
 end
 
 
-function cef_objective(u::Vector, p::Vector)::Real
+function cef_objective(u::Vector, p::Tuple)::Real
     # u = vector of stevens parameters in the same order as blm_symbols
     # p = [ion, cef_data, blm_symbols, np]
     ion::mag_ion, cef_data::cef_datasets, blm_symbols::Vector, np::Int = p
@@ -53,7 +53,7 @@ end
 
 
 ho = single_ion("Ho3")
-initial_bs = Dict("B20"=>-1.888,
+initial_bs = Dict("B20"=>-0.007,
                  "B4m3"=>-1.00256986,
                  "B40"=>-6.45614e-05,
                  "B43"=>5.45495e-06,
@@ -62,15 +62,6 @@ initial_bs = Dict("B20"=>-1.888,
                  "B60"=>1.47946e-07,
                  "B63"=>1.24976e-08,
                  "B66"=>-1.0817e-06,)
-# initial_bs = Dict("B20"=>-7.80,
-#                  "B4m3"=>+12.29,
-#                  "B40"=> +6.69,
-#                  "B43"=> +6.78,
-#                  "B6m6"=>+32.63,
-#                  "B6m3"=>+22.22,
-#                  "B60"=> +0.42,
-#                  "B63"=> +7.59,
-#                  "B66"=> +8.453)
 bdf = blm_dframe(initial_bs)
 b_pars = collect(values(initial_bs))
 b_syms = collect(keys(initial_bs))
@@ -83,16 +74,16 @@ hobr3_mag_data = DataFrame(CSV.File(data_path*"HoBr3/HoBr3_mag_all.csv"))
 hobr3_all_data = cef_datasets(ion=ho, blm=bdf, mag_data=hobr3_mag_data,
                               chi_data=hobr3_chi_data)
 np = nrow(hobr3_chi_data) + nrow(hobr3_mag_data)
-p = [ho, hobr3_all_data, b_syms, np]
+p = (ho, hobr3_all_data, b_syms, np)
 
 println("Initial Chi2/NDOF: $(cef_objective(b_pars, p))")
-plot_chi(hobr3_all_data)
+# plot_chi(hobr3_all_data)
 
-# opt_func = OptimizationFunction(cef_objective, syms=b_syms)
-# opt_prob = OptimizationProblem(opt_func, b_pars, p, sense=:MinSense,)
-# #                             # lb=b_lbounds, ub=b_ubounds)
+opt_func = OptimizationFunction(cef_objective, syms=b_syms)
+opt_prob = OptimizationProblem(opt_func, b_pars, p, sense=:MinSense,)
+#                             # lb=b_lbounds, ub=b_ubounds)
 # opt_sol = solve(opt_prob, Optim.NelderMead(), show_trace=true, show_every=25)
-# opt_sol = solve(opt_prob, Optim.ParticleSwarm(lower=b_lbounds, upper=b_ubounds,
-#                                              n_particles=70),
-#                show_trace=true, show_every=15, maxiters=1e6, maxtime=Inf)
+opt_sol = solve(opt_prob, Optim.ParticleSwarm(lower=b_lbounds, upper=b_ubounds,
+                                             n_particles=50),
+               show_trace=true, show_every=15, maxiters=1e6, maxtime=Inf)
 

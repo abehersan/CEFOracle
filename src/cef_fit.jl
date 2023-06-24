@@ -81,7 +81,7 @@ end
 """given a cef_datasets struct, compute chi^2"""
 function chi2_cef(dsets::cef_datasets;
                  mag_weight::Float64=1.0, mag_units="atomic",
-                 chi_weight::Float64=1.0, chi_units="CGS", chi_scale="chi",
+                 susc_weight::Float64=1.0, chi_units="CGS", chi_scale="chi",
                  cpv_weight::Float64=1.0, cpv_units="SI")::Float64
     chi2::Float64 = 0.0
     ion::mag_ion = dsets.ion
