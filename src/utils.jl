@@ -5,6 +5,12 @@ Miscelaneous utility functions for internal use
 """
 
 
+"""
+    effective_moment(single_ion::mag_ion)::Float64
+
+Calculate the effective magnetic moment in units of Bohr's magneton via
+``mu_{eff}/mu_{B} = sqrt(J(J+1))``
+"""
 function effective_moment(single_ion::mag_ion)::Float64
     gJ = single_ion.gJ; J = single_ion.J;
     gJ * sqrt(J*(J+1.0))
@@ -53,13 +59,12 @@ function divide_center_element!(A::Matrix{<:Number}, val::Number)::Matrix
 end
 
 
-function blm_dframe!(Blm_dict::Dict{String, <:Real})::DataFrame
-    l, m = parse_blm(collect(keys(Blm_dict)))
-    bs = collect(values(Blm_dict))
-    Blm_dict = DataFrame("Blm"=>bs, "l"=>l, "m"=>m)
-end
+"""
+    blm_dframe(Blm_dict::Dict{String, <:Real})::DataFrame
 
-
+Given a dictionary of Stevens coefficients of the form Blm -> Value, return
+a DataFrame with equivalent information.
+"""
 function blm_dframe(Blm_dict::Dict{String, <:Real})::DataFrame
     l, m = parse_blm(collect(keys(Blm_dict)))
     bs = collect(values(Blm_dict))
@@ -121,10 +126,7 @@ where <r^l> is the expectation value of the radial wavefunction of the
 and theta_l are the Stevens factors (as consequence of Wigner-Eckhart)
 The function below extracts the value of A_lm given a B_lm by simple division
 """
-function stevens_A(
-    single_ion::mag_ion,
-    stevens_B::Dict{String, Float64}
-    )
+function stevens_A(single_ion::mag_ion, stevens_B::Dict{String, Float64})
     alpha, beta, gamma = single_ion.stevens_factors
     r2, r4, r6 = single_ion.rad_wavefunction
     stevens_A = Dict{String, Float64}()

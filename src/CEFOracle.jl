@@ -5,6 +5,7 @@ module CEFOracle
 using DataFrames
 using LinearAlgebra
 using Logging
+using RecipesBase
 using SpecialFunctions
 using StaticArrays
 using Statistics
@@ -12,14 +13,14 @@ using OffsetArrays
 
 
 # export functions and variables for REPL use
-export single_ion
+export single_ion, mag_ion
 export meV_per_K, mu0, muB, kB, NA, R
 export effective_moment, blm_dframe
 export cef_eigensystem
 export cef_magnetization, cef_susceptibility
 export cef_heatcapacity, cef_heatcapacity_speclevels
 export TAS_res, voigt, gauss, lorentz, cef_neutronxsection
-export cef_datasets
+export cef_datasets, chi2_cef
 
 
 # include source files in module scope

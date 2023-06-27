@@ -6,11 +6,14 @@ Define single-ion properties such as J, gJ and stevens multiplicative factors
 
 
 """
-Given a magnetic ion name, generate a mag_ion object with the following info
-    J, lande-factor gJ
-    Stevens geometric factors theta_l, alpha, beta, gamma
-    Radial wave functions <r^l> r2, r4, r6
-    Dipolar magnetic form factor coefficients
+    single_ion(ion::String)
+
+Given a magnetic ion name, generate a mag_ion object with the following info:
+
+- J, lande-factor gJ
+- Stevens geometric factors theta_l, alpha, beta, gamma
+- Radial wave functions <r^l> r2, r4, r6
+- Dipolar magnetic form factor coefficients
 
 Coefficients taken from Rotter Bauer (2010),
 the McPhase online manual: http://www.mcphase.de/manual5_5/node129.html
@@ -127,7 +130,8 @@ function single_ion(ion::String)
 end
 
 
-struct mag_ion
+
+Base.@kwdef mutable struct mag_ion
     ion::String
     J::Float64
     gJ::Float64

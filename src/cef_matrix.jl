@@ -1,23 +1,36 @@
 """
 cef_matrix.jl
 
-Define and diagonalize the CEF matrix from non-zero Stevens parameters
-and an applied magnetic field (external).
-Hamiltonian -> H = H_CF + H_Zeeman
+Define and diagonalize the CEF Hamiltonian matrix from non-zero Stevens
+parameters and an applied magnetic field (external).
+Hamiltonian -> H = H_CEF + H_Zeeman
 """
 
-function cef_eigensystem(single_ion::mag_ion, Blm::Dict{String,<:Real},
-    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0, verbose=false
-    )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
-    @warn "Blm Dictionary given. DataFrames are more performant!\n"*
-        "Define a Blm DataFrame with 'blm_dframe(blm_dict)'"
+
+"""
+    cef_eigensystem(single_ion::mag_ion, Blm::Dict{String, Real}, Bx::Real, By::Real, Bz::Real:Real, verbose=false)
+    cef_eigensystem(single_ion::mag_ion, Blm::DataFrame, Bx::Real, By::Real, Bz::Real:Real, verbose=false)
+
+Returns a tuple that contains 1) the full Hamiltonian matrix,
+``mathcal{H} = mathcal{H}_{rm{CEF}}+mathcal{H}_{rm{Zeeman}}``,
+2) the eigenvalues of the matrix and 3) the eigenvectors of the matrix.
+
+`Bx`, `By` and `Bz` are the values of the applied magnetic field defined in
+units of Tesla. In addition, the ``xyz`` coordinate system is assumed to be
+parallel to the ``abc`` crystal coordinates.
+"""
+function cef_eigensystem(single_ion::mag_ion, Blm::Dict{String, <:Real},
+                        Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0, verbose=false
+                        )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
+    @warn "Stevens parameters dictionary given. DataFrames are more performant!\n"*
+          "Define a Stevens parameters dataFrame with 'blm_dframe(blm_dict)'"
     cef_eigensystem(single_ion, blm_dframe(Blm), Bx, By, Bz; verbose=verbose)
 end
 
 
 function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
-    Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0; verbose=false
-    )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
+                        Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0; verbose=false
+                        )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = single_ion.J
     gJ = single_ion.gJ
     m_dim = Int(2.0*J+1.0)
@@ -30,13 +43,13 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
     else
         cef_matrix = H_cef(J, Blm) + H_zeeman(J, gJ, external_field)
     end
-    # @assert is_hermitian(cef_matrix)
+    # @assert is_hermitian(cef_matrix) # disabled for performance
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
     if verbose
         println("CEF Hamiltonian parameters")
-        println("External field in Tesla:
-            [Bx, By, Bz] = $external_field")
+        println("External field in Tesla:")
+        println("[Bx, By, Bz] = $external_field")
         println("CEF parameters:")
         display(Blm)
         println("CEF-split single-ion energy levels in meV:")
@@ -62,27 +75,16 @@ end
 """
 Zeeman Hamiltonian given a spin magnitude, an effective and isotropic
 g-factor and a vector containing the applied magnetic field in Tesla
+
+TODO: define a function method that allows for g to be a tensor, specifically
+a diagonal tensor in the case the system is aligned in the eigenframe of the
+g-tensor, i.e. g = [gxx, gyy, gzz]
 """
 function H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})
-    Jy = spin_operators(J, "y")
     Jx = spin_operators(J, "x")
+    Jy = spin_operators(J, "y")
     Jz = spin_operators(J, "z")
     Bx, By, Bz = - 1.0 * g * muB * external_field
-    sum([Bx*Jx, By*Jy, Bz*Jz])
-end
-
-
-"""
-Zeeman Hamiltonian given a spin magnitude.
-The system is assumed in the eigenframe of the g-tensor such that it is
-diagonal and has components
-g = [gx, gy, gz]
-"""
-function H_zeeman(J::Float64, gJ::Vector{<:Real}, external_field::Vector{<:Real})
-    Jz = spin_operators(J, "z")
-    Jy = spin_operators(J, "y")
-    Jx = spin_operators(J, "x")
-    Bx, By, Bz = @. - 1.0 * gJ * muB * external_field
     sum([Bx*Jx, By*Jy, Bz*Jz])
 end
 
@@ -174,7 +176,7 @@ function ryabov_clm(l::Int, m::Int)::Float64
             alpha = 1.0
         end
     end
-    clm = alpha/(Flm) # Ryabov (1999) Eq.(22) without Nlm
+    clm = alpha/(Flm) # Ryabov (1999) Eq.(22) without Nlm, not necessary
     # Nll = ((-1)^l * sqrt(factorial(2l)))/(2^l * factorial(l))
     # Nlm = (-1)^(l-m) * Nll*sqrt(factorial(l+m)/(factorial(l-m)*factorial(2l)))
     # clm = alpha/(Nlm*Flm) # Ryabov (1999) Eq.(22)

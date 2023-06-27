@@ -3,12 +3,11 @@ Reproduction of results from Rotter, Bauer paper, CEF model A
 """
 
 
-using CEFOracle
-using LaTeXStrings
-using Plots
+using CEFOracle, LaTeXStrings, Plots
 gr()
 
 
+println("bruh")
 yb = single_ion("Yb3")
 bs_modelA = Dict(
         "B20"=>0.5622, "B40"=>1.6087e-5, "B60"=>6.412e-7, "B66"=>-8.324e-6)
@@ -56,13 +55,16 @@ reproduces figure 11 of the paper
 """
 T = 0.5
 fields = LinRange(0.0, 12, 150)
-mag_A_para = [cef_magnetization(yb,bdf_A,T,[0,b,0],"atomic")[2] for b in fields]
+mag_A_para = [cef_magnetization(yb,bdf_A,T,[b,0,0],"atomic")[1] for b in fields]
 mag_A_perp = [cef_magnetization(yb,bdf_A,T,[0,0,b],"atomic")[3] for b in fields]
-mag_B_para = [cef_magnetization(yb,bdf_B,T,[0,b,0],"atomic")[2] for b in fields]
+mag_B_para = [cef_magnetization(yb,bdf_B,T,[b,0,0],"atomic")[1] for b in fields]
 mag_B_perp = [cef_magnetization(yb,bdf_B,T,[0,0,b],"atomic")[3] for b in fields]
+mag_A_powd = [cef_magnetization(yb,bdf_A,T,b,"atomic") for b in fields]
+# mag_A_powd = 2/3 .* mag_A_perp + 1/3 .* mag_A_perp
+mag_B_powd = [cef_magnetization(yb,bdf_B,T,b,"atomic") for b in fields]
 mag_plot = plot(
-            fields, [mag_A_para mag_A_perp mag_B_para mag_B_perp],
-            label=[L"B\parallel c_{A}" L"B\perp c_{A}" L"B\parallel c_{B}" L"B\perp c_{B}"],
+            fields, [mag_A_para mag_A_perp mag_B_para mag_B_perp mag_A_powd mag_B_powd],
+            label=[L"B\parallel c_{A}" L"B\perp c_{A}" L"B\parallel c_{B}" L"B\perp c_{B}" "Powder A" "Powder B"],
             xlabel="Field [Tesla]",
             ylabel="M " * L"[\mu_{B}/ion]"
             )
@@ -78,15 +80,15 @@ bext = 0.05
 temps = LinRange(0.5, 300, 150)
 invchi_para = [1/cef_susceptibility(yb,bdf_A,t,[0,0,bext],"CGS")[3] for t in temps]
 invchi_perp = [1/cef_susceptibility(yb,bdf_A,t,[bext,0,0],"CGS")[1] for t in temps]
-# invchi_powd = [1/cef_susceptibility(yb,bdf_A,t,bext, "CGS") for t in temps]
-invchi_powd = (2/3 .* invchi_perp + 1/3 .* invchi_para)
+invchi_powd = [1/cef_susceptibility(yb,bdf_A,t,bext, "CGS") for t in temps]
+invchi_powd_c = (2/3 .* invchi_perp + 1/3 .* invchi_para)
 invchi_plot = plot(
-                temps, [invchi_para invchi_perp invchi_powd],
-                label=[L"B\parallel c" L"B\perp c" "Powder"],
+                temps, [invchi_para invchi_perp invchi_powd invchi_powd_c],
+                label=[L"B\parallel c" L"B\perp c" "Powder" "Calc powder"],
                 xlabel="Temperature [Kelvin]",
                 ylabel=L"1/\chi\;[mol/emu]"
                 )
 
 
-plot(ins_plot, cv_plot, mag_plot, invchi_plot,
-    layout=(2, 2), legend=true, dpi=300)
+plot(ins_plot, cv_plot, mag_plot, invchi_plot, layout=(2, 2), legend=true,
+    dpi=300, size=(1080, 720), thickness_scaling=1.5, scalefontsizes=1.5)
