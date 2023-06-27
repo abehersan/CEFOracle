@@ -21,5 +21,5 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/abehersan/CEFOracle.jl",
-    devbranch="main",
+    devbranch="dev",
 )
