@@ -21,7 +21,7 @@ bs_dframe = blm_dframe(bs_dict)
 
 display(cef_eigensystem(pr, bs_dframe, verbose=true))
 
-es = LinRange(0, 100, 700)
+es = LinRange(-20, 100, 700)
 temps = [5.0, 25.0, 100.0]
 ins_plot = plot(xlabel="Energy [meV]", ylabel="I(Q, E) [arb. units]")
 for t in temps

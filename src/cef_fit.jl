@@ -1,7 +1,7 @@
 """
 cef_fit.jl
 
-Creates a fit interface between CEF calculations and a general measured datasets
+Creates a fit interface between CEF calculations and a general datasets
 """
 
 

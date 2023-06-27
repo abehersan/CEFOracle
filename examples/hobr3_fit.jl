@@ -86,4 +86,3 @@ opt_prob = OptimizationProblem(opt_func, b_pars, p, sense=:MinSense,)
 opt_sol = solve(opt_prob, Optim.ParticleSwarm(lower=b_lbounds, upper=b_ubounds,
                                              n_particles=50),
                show_trace=true, show_every=15, maxiters=1e6, maxtime=Inf)
-
