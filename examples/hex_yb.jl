@@ -7,6 +7,7 @@ using CEFOracle, LaTeXStrings, Plots
 gr()
 
 
+println("bruh")
 yb = single_ion("Yb3")
 bs_modelA = Dict(
         "B20"=>0.5622, "B40"=>1.6087e-5, "B60"=>6.412e-7, "B66"=>-8.324e-6)

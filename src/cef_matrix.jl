@@ -46,7 +46,6 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
     # @assert is_hermitian(cef_matrix) # disabled for performance
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
-    # cef
     if verbose
         println("CEF Hamiltonian parameters")
         println("External field in Tesla:")
