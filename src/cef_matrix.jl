@@ -47,7 +47,7 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
     if verbose
-        println("CEF Hamiltonian parameters")
+        println("__CEF Hamiltonian__")
         println("External field in Tesla:")
         println("[Bx, By, Bz] = $external_field")
         println("CEF parameters:")
