@@ -90,20 +90,20 @@ Implementation of equation (79) and (82) p.218-219 in
 Bauer, E., & Rotter, M. (2010).
 and equivalently equation 9.23 of Furrer/Messot/Strässle
 """
-# method: Blm dictionary, single-crystal
 function cef_magnetization(single_ion::mag_ion, Blm::Dict{String, <:Real},
                           T::Real, Bext::Vector{<:Real},
                           units::String="SI")::Vector{Float64}
+    # method: Blm dictionary, single-crystal
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
     cef_magnetization(single_ion, blm_dframe(Blm), T, Bext, units)
 end
 
 
-# method: Blm DataFrame, single-crystal
 function cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real,
                           Bext::Vector{<:Real},
                           units::String="SI")::Vector{Float64}
+    # method: Blm DataFrame, single-crystal
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
     cef_energies .-= minimum(cef_energies)
@@ -130,9 +130,9 @@ function cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real,
 end
 
 
-# method: Blm DataFrame, polycrystal
 function cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real,
                           Bext::Real, units::String="SI")::Float64
+    # method: Blm DataFrame, polycrystal
     magnetization_vector::Vector{Float64} =
         cef_magnetization(single_ion, Blm, T, [Bext,0,0], units) +
         cef_magnetization(single_ion, Blm, T, [0,Bext,0], units) +
@@ -200,19 +200,20 @@ Jensen, J., & Mackintosh, A. R. (1991).
 Rare earth magnetism. Oxford: Clarendon Press.
 Equivalently, implementation of equation 9.24 of Furrer/Messot/Strässle
 """
-# method: Blm dictionary, single-crystal
 function cef_susceptibility(single_ion::mag_ion, Blm::Dict{String, <:Real},
-    T::Real, Bext::Vector{<:Real}, units::String="SI")::Vector{Float64}
+                           T::Real, Bext::Vector{<:Real},
+                           units::String="SI")::Vector{Float64}
+    # method: Blm dictionary, single-crystal
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
     cef_susceptibility(single_ion, blm_dframe(Blm), T, Bext, units)
 end
 
 
-# method: Blm DataFrame, single-crystal
 function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real,
                            Bext::Vector{<:Real},
                            units::String="SI")::Vector{Float64}
+    # method: Blm DataFrame, single-crystal
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
     cef_energies .-= minimum(cef_energies)
@@ -240,9 +241,9 @@ function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real,
 end
 
 
-# method: Blm DataFrame, polycrystal
 function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real,
                            Bext::Real, units::String="SI")::Float64
+    # method: Blm DataFrame, polycrystal
     susceptibility_vector::Vector{Float64} =
         cef_susceptibility(single_ion, Blm, T, [Bext,0,0], units)+
         cef_susceptibility(single_ion, Blm, T, [0,Bext,0], units)+
@@ -276,18 +277,18 @@ supported in the `cef_heatcapacity_speclevels` function.
 
 Implementation of equation 9.25 of Furrer/Messot/Strässle.
 """
-# method: Blm dictionary, single environment
 function cef_heatcapacity(single_ion::mag_ion, Blm::Dict{String, <:Real},
                          T::Real, units::String="SI")::Float64
+    # method: Blm dictionary, single environment
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
     cef_heatcap(single_ion, blm_dframe(Blm), T, units)
 end
 
 
-# method: Blm DataFrame, all levels contribute
 function cef_heatcapacity(single_ion::mag_ion, Blm::DataFrame, T::Real,
                          units::String="SI")::Float64
+    # method: Blm DataFrame, all levels contribute
     _, cef_energies, _ = cef_eigensystem(single_ion, Blm)
     cef_energies .-= minimum(cef_energies)
     convfac = begin
@@ -302,10 +303,10 @@ function cef_heatcapacity(single_ion::mag_ion, Blm::DataFrame, T::Real,
 end
 
 
-# method: Blm DataFrame, only levels specified contribute (2J+1 levels in total)
 function cef_heatcapacity_speclevels(single_ion::mag_ion, Blm::DataFrame,
                                     T::Real, levels::UnitRange=1:4,
                                     units::String="SI")::Float64
+    # method: Blm DataFrame only levels specified contribute (2J+1 levels total)
     _, cef_energies, _ = cef_eigensystem(single_ion, Blm)
     cef_energies .-= minimum(cef_energies)
     convfac = begin
