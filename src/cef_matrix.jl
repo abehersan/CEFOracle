@@ -11,9 +11,9 @@ Hamiltonian -> H = H_CEF + H_Zeeman
     cef_eigensystem(single_ion::mag_ion, Blm::Dict{String, Real}, Bx::Real, By::Real, Bz::Real:Real, verbose=false)
     cef_eigensystem(single_ion::mag_ion, Blm::DataFrame, Bx::Real, By::Real, Bz::Real:Real, verbose=false)
 
-Returns a tuple that contains 1) the full Hamiltonian matrix,
+Returns a tuple that contains the full Hamiltonian matrix,
 ``mathcal{H} = mathcal{H}_{rm{CEF}}+mathcal{H}_{rm{Zeeman}}``,
-2) the eigenvalues of the matrix and 3) the eigenvectors of the matrix.
+the eigenvalues of the matrix and the eigenvectors of the matrix.
 
 `Bx`, `By` and `Bz` are the values of the applied magnetic field defined in
 units of Tesla. In addition, the ``xyz`` coordinate system is assumed to be
@@ -47,7 +47,7 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
     if verbose
-        println("CEF Hamiltonian parameters")
+        println("__CEF Hamiltonian__")
         println("External field in Tesla:")
         println("[Bx, By, Bz] = $external_field")
         println("CEF parameters:")

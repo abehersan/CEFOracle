@@ -87,9 +87,8 @@ function wigner_D(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF
 end
 
 
-function rotation_matrix_element(
-    l::Int, m::Int, mp::Int, alpha::Real, beta::Real, gamma::Real
-    )::ComplexF64
+function rotation_matrix_element(l::Int, m::Int, mp::Int, alpha::Real,
+                                beta::Real, gamma::Real)::ComplexF64
     mel = exp(1.0im*mp*alpha) * small_d(l, mp, m, beta) * exp(1.0im*m*gamma)
 end
 
@@ -135,9 +134,7 @@ where A is a diagonal and antidiagonal matrix relating the tesseral (Stevens)
 operators O^l_m to the spherical (Racah) tensors T^l_m and
 D is Wigner's D matrix parametrized by the Euler angles alpha, beta, gamma
 """
-function rotate_Blm(
-    Blm::DataFrame, alpha::Real, beta::Real, gamma::Real
-    )::DataFrame
+function rotate_Blm(Blm::DataFrame, alpha::Real, beta::Real, gamma::Real)::DataFrame
     Blm_rotated = DataFrame(Blm = Float64[], l = Int[], m = Int[])
     ls = sort(collect(Set(Blm[:, :l])))
     for l in ls
@@ -167,9 +164,7 @@ function rotate_Blm(
 end
 
 
-function rotate_stevens(
-    l::Int, alpha::Real, beta::Real, gamma::Real
-    )::Matrix{ComplexF64}
+function rotate_stevens(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
     rot_mat = zeros(ComplexF64, (2l+1, 2l+1))
     rot_mat = transpose(inv(Alm_matrix(l))) *
         wigner_D(l, alpha, beta, gamma)' *

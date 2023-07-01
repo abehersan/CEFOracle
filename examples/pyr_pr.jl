@@ -7,7 +7,6 @@ given in Boothroyd's paper on Pr2Sn2O7
 
 
 using CEFOracle, LaTeXStrings, Plots
-gr()
 
 
 pr = single_ion("Pr3")

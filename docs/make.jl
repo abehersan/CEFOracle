@@ -9,7 +9,7 @@ makedocs(;
     repo="https://github.com/abehersan/CEFOracle.jl/blob/{commit}{path}#{line}",
     sitename="CEFOracle.jl",
     format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
+        prettyurls=true,
         canonical="https://abehersan.github.io/CEFOracle.jl",
         edit_link="main",
         assets=String[],
@@ -20,6 +20,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/abehersan/CEFOracle.jl",
-    devbranch="main",
+    repo="github.com/abehersan/CEFOracle",
+    devbranch="dev",
 )
