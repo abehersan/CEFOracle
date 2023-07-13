@@ -52,36 +52,36 @@ end
     cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64, Q::Float64, R::Function=TAS_resfunc)
 
 Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
-Hamiltonian. A custom resolution function is admitted and must have a call
-signature like the following:
+Hamiltonian. A custom resolution function is admitted and must have the following
+call signature:
 `resfunc(E, dE)::Float64 = resolution function definition`.
 
 The form factor in the dipolar approximation is included in the calculation of
 the x-section.
 
 To calculate the INS spectrum of a single-crystal, Q must be a vector of reals
-in reciprocal lattice units.
+in cartesian reciprocal lattice units.
 For a polycrystal Q is a single real number.
 
 Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
 and eqn. (8.11) of Boothroyd.
 """
-# method: Blm dictionary, single-crystal
 function cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, <:Real},
                             E::Float64, Q::Vector{Real}, T::Float64=2.0,
                             Bext::Vector{<:Real}=[0, 0, 0],
                             R::Function=TAS_resfunc)::Float64
+    # method: Blm dictionary, single-crystal
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
         "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
     cef_neutronxsection(single_ion, blm_dframe(Blm), T, Bext, R, Q, E)
 end
 
 
-# method: Blm DataFrame, single-crystal, 8.11 of Boothroyd
 function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
                             Q::Vector{<:Real}, T::Float64=2.0,
                             Bext::Vector{Real}=[0, 0, 0],
                             R::Function=TAS_resfunc)::Float64
+    # method: Blm DataFrame, single-crystal, 8.11 of Boothroyd
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
     cef_energies .-= minimum(cef_energies)
@@ -101,15 +101,15 @@ function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
     for a in eachindex(Q), b in eachindex(Q)
         pol_factor[a, b] = (isequal(a, b) * 1.0 - Q[a]*Q[b]/Qnorm)
     end
-    ins_xsection::Float64 = abs(dipolar_form_factor(single_ion, Qnorm))^2 *
-        sum(pol_factor .* S_alphabeta)
+    ins_xsection::Float64 =
+        abs(dipolar_form_factor(single_ion, Qnorm))^2 * sum(pol_factor .* S_alphabeta)
 end
 
 
-# method: Blm DataFrame, polycrystal, 8.12 of Boothroyd
 function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
                             Q::Real, T::Float64, Bext::Real=0.0,
                             R::Function=TAS_resfunc)::Float64
+    # method: Blm DataFrame, polycrystal, 8.12 of Boothroyd
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm)
     cef_energies .-= minimum(cef_energies)
@@ -119,38 +119,39 @@ function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
     spin_ops = [Jx, Jy, Jz]
     S_alphabeta::Float64 = 0.0
     for a in eachindex(spin_ops)
-        S_alphabeta += calc_S_alphabeta(
-            Ep=cef_energies, Vp=cef_wavefunctions, R=R, E=E,
-            J_alpha=spin_ops[a], J_beta=spin_ops[a], T=T)
+        S_alphabeta += calc_S_alphabeta(Ep=cef_energies, Vp=cef_wavefunctions,
+                                        R=R, E=E, J_alpha=spin_ops[a],
+                                        J_beta=spin_ops[a], T=T)
     end
-    ins_xsection::Float64 = abs(dipolar_form_factor(single_ion, Q))^2 *
-        (2.0/3.0) * S_alphabeta
+    ins_xsection::Float64 =
+        abs(dipolar_form_factor(single_ion, Q))^2 * (2.0/3.0 * S_alphabeta)
 end
 
 
 """
 Energy transfer dependence of the spectrometer resolution function
-assumed to be a Voigt profile of fixed Lorentzian width (elastic resolution)
+assumed to be Gaussian of variable width
 """
-function TAS_resfunc(E::Float64, Ep::Float64, gauss_FWHM::Float64=0.09,
-    lorentz_FWHM::Function=x->0.03*x+0.09)::Float64
-    voigt(x=E, A=1.0, mu=Ep, sigma=gauss_FWHM, gamma=lorentz_FWHM(Ep))
+function TAS_resfunc(E::Float64, Epeak::Float64,
+                    width::Function=x->0.03*x+0.09)::Float64
+    gauss(x=E, center=Epeak, amplitude=1.0, width=width)
 end
 
 
-function voigt(; x::Real, A::Real, mu::Real, sigma::Real, gamma::Real)::Float64
+function voigt(; x::Real, amplitude::Real, center::Real, sigma::Real,
+              gamma::Real)::Float64
     # see https://lmfit.github.io/lmfit-py/builtin_models.html#lmfit.models.VoigtModel
     # and
     # https://specialfunctions.juliamath.org/v0.4/special.html#SpecialFunctions.erfcx
-    z = (x - mu + 1im*gamma) / (sigma * sqrt(2))
+    z = (x - center + 1im*gamma) / (sigma * sqrt(2))
     w = erfcx(-1im*z)
-    A * real(w) / (sqrt(2pi) * sigma)
+    amplitude * real(w) / (sqrt(2pi) * sigma)
 end
 
 
-gauss(; x::Real, A::Real, mu::Real, sigma::Real)::Float64 =
-    A * exp(-(x-mu)^2 / (2*sigma^2)) / (sqrt(2pi) * sigma)
+gauss(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
+    amplitude * exp(-(x-center)^2 / (2*sigma^2)) / (sqrt(2pi) * sigma)
 
 
-lorentz(; x::Real, A::Real, mu::Real, sigma::Real)::Float64 =
-    A / pi * (sigma / ( (x-mu)^2 + sigma^2 ) )
+lorentz(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
+    amplitude / pi * (sigma / ( (x-center)^2 + sigma^2 ) )
