@@ -20,7 +20,7 @@ $l \in [2, 4, 6]$ and $m \in [-l, l]$, given a total angular momentum quantum
 number $J$, see Ryabov (1999) and Rudowicz (2015).
 
 The Hamiltonian is given as a function of the  total-angular momentum matrices
-$\hat{I}_{x}, \hat{I}_{y}, \hat{I}_{z}$.
+$\hat{I}_x, \hat{I}_y, \hat{I}_z$.
 And possibly an external magnetic field $\boldsymbol{B}=(B_x, B_y, B_z)$
 with components in units of Tesla.
 
