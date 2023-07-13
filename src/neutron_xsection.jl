@@ -134,7 +134,7 @@ assumed to be Gaussian of variable width
 """
 function TAS_resfunc(E::Float64, Epeak::Float64,
                     width::Function=x->0.03*x+0.09)::Float64
-    gauss(x=E, center=Epeak, amplitude=1.0, width=width)
+    gauss(x=E, center=Epeak, amplitude=1.0, sigma=width)
 end
 
 
