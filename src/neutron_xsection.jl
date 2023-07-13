@@ -52,9 +52,14 @@ end
     cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64, Q::Float64, R::Function=TAS_resfunc)
 
 Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
-Hamiltonian. A custom resolution function is admitted and must have the following
+Hamiltonian.
+
+A custom resolution function is admitted and must have the following
 call signature:
-`resfunc(E, dE)::Float64 = resolution function definition`.
+`resfunc(E, Epeak, width)::Float64`
+`E` is is the energy where the intensity is being calculated,
+`Epeak` is is the energy of the actual CEF excitation and
+`width` is the resolution in units of energy at `E`.
 
 The form factor in the dipolar approximation is included in the calculation of
 the x-section.
@@ -129,12 +134,14 @@ end
 
 
 """
+    TAS_resfunc(E::Float64, Epeak::Float64, width::Function)::Float64
+
 Energy transfer dependence of the spectrometer resolution function
-assumed to be Gaussian of variable width
+assumed to be Gaussian of variable width.
 """
 function TAS_resfunc(E::Float64, Epeak::Float64,
                     width::Function=x->0.03*x+0.09)::Float64
-    gauss(x=E, center=Epeak, amplitude=1.0, sigma=width)
+    gauss(x=E, center=Epeak, amplitude=1.0, sigma=width(E))
 end
 
 

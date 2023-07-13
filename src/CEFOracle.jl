@@ -18,7 +18,7 @@ export effective_moment, blm_dframe
 export cef_eigensystem
 export cef_magnetization, cef_susceptibility
 export cef_heatcapacity, cef_heatcapacity_speclevels
-export TAS_res, voigt, gauss, lorentz, cef_neutronxsection
+export TAS_resfunc, voigt, gauss, lorentz, cef_neutronxsection
 export cef_datasets, chi2_cef
 
 
