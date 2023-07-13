@@ -54,6 +54,7 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
         display(Blm)
         println("CEF-split single-ion energy levels in meV:")
         display(cef_energies .- minimum(cef_energies))
+        return
     end
     (cef_matrix, cef_energies, cef_wavefunctions)
 end
