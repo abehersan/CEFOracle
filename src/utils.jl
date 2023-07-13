@@ -17,8 +17,8 @@ function effective_moment(single_ion::mag_ion)::Float64
 end
 
 
-function norm_Blm(Blm::DataFrame)::Float64
-    norm(Blm[!, :Blm], 2)
+function norm_Blm(blm::DataFrame)::Float64
+    norm(blm[!, :Blm], 2)
 end
 
 
@@ -65,10 +65,17 @@ end
 Given a dictionary of Stevens coefficients of the form Blm -> Value, return
 a DataFrame with equivalent information.
 """
-function blm_dframe(Blm_dict::Dict{String, <:Real})::DataFrame
-    l, m = parse_blm(collect(keys(Blm_dict)))
-    bs = collect(values(Blm_dict))
+function blm_dframe(blm_dict::Dict{String, <:Real})::DataFrame
+    l, m = parse_blm(collect(keys(blm_dict)))
+    bs = collect(values(blm_dict))
     DataFrame("Blm"=>bs, "l"=>l, "m"=>m)
+end
+
+
+function alm_dframe(blm_dict::Dict{String, <:Real})::DataFrame
+    l, m = parse_blm(collect(keys(blm_dict)))
+    bs = collect(values(blm_dict))
+    DataFrame("Alm"=>bs, "l"=>l, "m"=>m)
 end
 
 
@@ -109,24 +116,26 @@ function full_blm_dframe(Blm::DataFrame)::DataFrame
                 end
             end
         end
-        append!(
-            Blm_full,
-            DataFrame("Blm"=>Blm_fl, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l)
-            )
+        append!(Blm_full,
+            DataFrame("Blm"=>Blm_fl, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
     end
     Blm_full
 end
 
 
 """
+    stevens_A(single_ion::mag_ion, blm::Dict{String, Float64})::DataFrame
+    stevens_A(single_ion::mag_ion, blm::DataFrame)::DataFrame
+
 Factorization of the Stevens B_lm parameters defined as
 B_lm = A_lm * <r^l> * theta_l,
 where <r^l> is the expectation value of the radial wavefunction of the
-4f electron density (tabulated)
-and theta_l are the Stevens factors (as consequence of Wigner-Eckhart)
-The function below extracts the value of A_lm given a B_lm by simple division
+4f electron density (tabulated) and theta_l are the Stevens factors
+(calculated via the Wigner-Eckhart theorem).
+
+A_lm are extracted by simple division.
 """
-function stevens_A(single_ion::mag_ion, stevens_B::Dict{String, Float64})
+function stevens_A(single_ion::mag_ion, blm::Dict{String, Float64})::DataFrame
     alpha, beta, gamma = single_ion.stevens_factors
     r2, r4, r6 = single_ion.rad_wavefunction
     stevens_A = Dict{String, Float64}()
@@ -149,5 +158,29 @@ function stevens_A(single_ion::mag_ion, stevens_B::Dict{String, Float64})
         end
         stevens_A[new_key] = new_value
     end
-    return stevens_A
+    return alm_dframe(stevens_A)
+end
+
+
+function stevens_A(single_ion::mag_ion, blm::DataFrame)::DataFrame
+    Alm = copy(blm)
+    rename!(Alm, :Blm=>:Alm)
+    alpha, beta, gamma = single_ion.stevens_factors
+    r2, r4, r6 = single_ion.rad_wavefunction
+    for r in eachrow(Alm)
+        if r.l == 2
+            r.Alm *= 1.0 / (alpha * r2)
+        elseif r.l == 4
+            r.Alm *= 1.0 / (beta * r4)
+        elseif r.l == 6
+            r.Alm *= 1.0 / (gamma * r6)
+        else
+            err_message =
+            "Given BLM parameter has invalid L and/or M.\n"*
+            "$l and $m were parsed and are not supported.\n"*
+            "Writing unscaled Stevens parameter."
+            @error err_message
+        end
+    end
+    Alm
 end
