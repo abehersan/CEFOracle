@@ -19,7 +19,7 @@ the eigenvalues of the matrix and the eigenvectors of the matrix.
 units of Tesla. In addition, the ``xyz`` coordinate system is assumed to be
 parallel to the ``abc`` crystal coordinates.
 """
-function cef_eigensystem(single_ion::mag_ion, Blm::Dict{String, <:Real},
+function cef_eigensystem(single_ion::mag_ion, Blm::Dict{String, <:Real};
                         Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0, verbose=false
                         )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     @warn "Stevens parameters dictionary given. DataFrames are more performant!\n"*
@@ -28,7 +28,7 @@ function cef_eigensystem(single_ion::mag_ion, Blm::Dict{String, <:Real},
 end
 
 
-function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
+function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame;
                         Bx::Real=0.0, By::Real=0.0, Bz::Real=0.0; verbose=false
                         )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = single_ion.J
@@ -54,7 +54,6 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
         display(Blm)
         println("CEF-split single-ion energy levels in meV:")
         display(cef_energies .- minimum(cef_energies))
-        return
     end
     (cef_matrix, cef_energies, cef_wavefunctions)
 end
