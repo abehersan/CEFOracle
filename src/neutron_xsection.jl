@@ -47,9 +47,9 @@ end
 
 
 """
-    cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, Real}; E::Float64, Q::Vector{Real}=[0,0,0], R::Function=TAS_resfunc)
-    cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame; E::Float64, Q::Vector{Real}=[0,0,0], R::Function=TAS_resfunc)
-    cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame; E::Float64, Q::Float64, R::Function=TAS_resfunc)
+    cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, Real}, E::Float64, Q::Vector{Real}=[0,0,0], R::Function=TAS_resfunc)
+    cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64, Q::Vector{Real}=[0,0,0], R::Function=TAS_resfunc)
+    cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64, Q::Float64, R::Function=TAS_resfunc)
 
 Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
 Hamiltonian.
@@ -71,7 +71,7 @@ For a polycrystal Q is a single real number.
 Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
 and eqn. (8.11) of Boothroyd.
 """
-function cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, <:Real};
+function cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, <:Real},
                             E::Float64, Q::Vector{Real}, T::Float64=2.0,
                             Bext::Vector{<:Real}=[0, 0, 0],
                             R::Function=TAS_resfunc)::Float64
@@ -82,7 +82,7 @@ function cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, <:Real};
 end
 
 
-function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame; E::Real,
+function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
                             Q::Vector{<:Real}, T::Float64=2.0,
                             Bext::Vector{Real}=[0, 0, 0],
                             R::Function=TAS_resfunc)::Float64
@@ -111,7 +111,7 @@ function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame; E::Real,
 end
 
 
-function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame; E::Real,
+function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
                             Q::Real, T::Float64, Bext::Real=0.0,
                             R::Function=TAS_resfunc)::Float64
     # method: Blm DataFrame, polycrystal, 8.12 of Boothroyd

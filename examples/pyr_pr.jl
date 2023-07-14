@@ -6,7 +6,7 @@ given in Boothroyd's paper on Pr2Sn2O7
 """
 
 
-using CEFOracle, LaTeXStrings, Plots
+using CEFOracle, Plots
 
 
 pr = single_ion("Pr3")
@@ -28,4 +28,3 @@ for t in temps
           label="T=$t")
 end
 display(ins_plot)
-# plot!(es, ins_xsection, label="T=5K")
