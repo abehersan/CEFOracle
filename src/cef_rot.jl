@@ -33,7 +33,7 @@ v is assumed to be the unit vector along the z-axis which is parallel to the
 c-direction.
 v defines the new quantization axis in the rotated coordinate frame.
 """
-function get_euler_angles(v::Vector{<:Real})::Vector{Float64}
+function get_euler_angles(v::Vector{<:Real})::Tuple{Float64, Float64, Float64}
     if isequal(zeros(Real, 3), v)
         return zeros(Real, 3)
     end
@@ -41,7 +41,7 @@ function get_euler_angles(v::Vector{<:Real})::Vector{Float64}
     alpha = atan(v_norm[2], v_norm[1])# / pi * 180.0
     beta = atan((v_norm[1]^2 + v_norm[2]^2), v_norm[3])# / pi * 180.0
     gamma = 0.0
-    [alpha, beta, gamma]
+    (alpha, beta, gamma)
 end
 
 
@@ -83,25 +83,18 @@ function small_d(l::Int, mp::Int, m::Int, beta::Real)::Float64
     if iszero(beta)
         return isequal(m, mp) * 1.0 # delta function d_m'm if beta=0
     end
-    # s = 0
     djmpm = 0.0
-    # while binomial(Int(l+m), Int(l-mp-s))>0 && binomial(Int(l-m), Int(s))>0
     smin = Int(maximum([0, -(m+mp)]))
     smax = Int(minimum([l-m, l-mp]))
-    # println("smin: $smin, smax: $smax")
     for s in smin:1:smax
         djmpm += (-1)^(l-m-s)*
         ((cos(beta/2))^(2s+mp+m))*
-        # ((sin(beta/2))^(2l-2s))* # Danielsen-Lindgård
-        ((sin(beta/2))^(2l-2s-m-mp))* # Lindner
+        ((sin(beta/2))^(2l-2s-m-mp))*
         binomial(Int(l+m), Int(l-mp-s))*
         binomial(Int(l-m), Int(s))
-        # s += 1
     end
-    djmpm *= sqrt(
-        (factorial(Int(l+mp))*factorial(Int(l-mp)))/
-        (factorial(Int(l+m))*factorial(Int(l-m)))
-       )
+    djmpm *= sqrt((factorial(Int(l+mp))*factorial(Int(l-mp)))/
+                  (factorial(Int(l+m))*factorial(Int(l-m))))
     if isequal(djmpm, NaN) || isequal(djmpm, Inf)
         err_message =
         "Matrix element djmpm is NaN or Inf!\n"*
@@ -146,7 +139,7 @@ function rotate_blm(Blm::DataFrame, alpha::Real, beta::Real, gamma::Real)::DataF
         # @assert norm(imag(Blm_rot)) < 1e-12
         Blm_res = real(Blm_rot)
         append!(Blm_rotated,
-            DataFrame("Blm"=>Blm_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
+                DataFrame("Blm"=>Blm_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
     end
     Blm_rotated
 end
@@ -154,9 +147,8 @@ end
 
 function rotate_stevens(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
     rot_mat = zeros(ComplexF64, (2l+1, 2l+1))
-    rot_mat = transpose(inv(Alm_matrix(l))) *
-        wigner_D(l, alpha, beta, gamma)' *
-        transpose(Alm_matrix(l))
+    rot_mat = transpose(inv(Alm_matrix(l))) * wigner_D(l, alpha, beta, gamma)' *
+              transpose(Alm_matrix(l))
 end
 
 

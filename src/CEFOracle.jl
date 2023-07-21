@@ -1,39 +1,49 @@
 module CEFOracle
 
 
-# using external modules
 using DataFrames
 using LinearAlgebra
-using Logging
 using SpecialFunctions
 using StaticArrays
 using Statistics
 using OffsetArrays
 
 
-# export functions and variables for REPL use
-export single_ion, mag_ion
-export meV_per_K, mu0, muB, kB, NA, R
-export effective_moment, blm_dframe, stevens_A
-export stevens_O
-export rotate_blm, get_euler_angles
-export cef_eigensystem
-export cef_magnetization, cef_susceptibility
-export cef_heatcapacity, cef_heatcapacity_speclevels
-export TAS_resfunc, voigt, gauss, lorentz, cef_neutronxsection
-# export cef_datasets, chi2_cef
-
-
-# include source files in module scope
 include("./single_ion.jl")
-include("./units.jl")
-include("./utils.jl")
-include("./cef_matrix.jl")
-include("./mag_properties.jl")
-include("./neutron_xsection.jl")
-include("./cef_rot.jl")
-include("./cef_ops.jl")
-# include("./cef_fit.jl")
+export single_ion, mag_ion
 
+
+include("./units.jl")
+export meV_per_K, mu0, muB, kB, NA, R
+
+
+include("./utils.jl")
+export effective_moment, blm_dframe, stevens_A
+
+
+include("./cef_matrix.jl")
+export cef_eigensystem, cef_eigensystem_multisite, cef_site
+
+
+include("./mag_properties.jl")
+export cef_magnetization, cef_magnetization_multisite
+export cef_susceptibility, cef_susceptibility_multisite
+export cef_heatcapacity, cef_heatcapacity_speclevels
+
+
+include("./neutron_xsection.jl")
+export cef_neutronxsection, cef_neutronxsection_multisite
+export TAS_resfunc, voigt, gauss, lorentz
+
+
+include("./cef_ops.jl")
+export stevens_O
+
+
+include("./cef_rot.jl")
+export rotate_blm, get_euler_angles
+
+# include("./cef_fit.jl")
+# export cef_datasets, chi2_cef
 
 end

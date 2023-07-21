@@ -91,7 +91,7 @@ Bauer, E., & Rotter, M. (2010).
 and equivalently equation 9.23 of Furrer/Messot/Strässle
 """
 function cef_magnetization(single_ion::mag_ion, Blm::Dict{String, <:Real},
-                          T::Real, Bext::Vector{<:Real},
+                          T::Real, Bext::Union{Vector{<:Real}, Real}=[0,0,0],
                           units::String="SI")::Vector{Float64}
     # method: Blm dictionary, single-crystal
     @warn "Blm Dictionary given. DataFrames are more performant!\n"*
@@ -101,19 +101,18 @@ end
 
 
 function cef_magnetization(single_ion::mag_ion, Blm::DataFrame,
-                          T::Real, Bext::Vector{<:Real},
+                          T::Real, Bext::Vector{<:Real}=[0,0,0],
                           units::String="SI")::Vector{Float64}
-    # method: Blm DataFrame, single-crystal
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
+        cef_eigensystem(single_ion, Blm, Bext)
     cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
-    magnetization_vector = zeros(Float64, 3)
+    magnetization = zeros(Float64, 3)
     spin_ops = [Jx, Jy, Jz]
     for a in eachindex(spin_ops)
-        magnetization_vector[a] =
+        magnetization[a] =
             calc_magnetization(Ep=cef_energies, Vp=cef_wavefunctions,
                               J_alpha=spin_ops[a], T=T)
     end
@@ -124,9 +123,11 @@ function cef_magnetization(single_ion::mag_ion, Blm::DataFrame,
             5.5849397*1000.0    # NA * muB  [emu/mol]
         elseif isequal(units, "atomic")
             1.0
+        else
+            @warn "Units $units not understood. Use one of either 'SI', 'CGS' or 'atomic'"
         end
     end
-    magnetization_vector .* single_ion.gJ .* convfac
+    magnetization .* single_ion.gJ .* convfac
 end
 
 
@@ -138,6 +139,39 @@ function cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real,
         cef_magnetization(single_ion, Blm, T, [0,Bext,0], units) +
         cef_magnetization(single_ion, Blm, T, [0,0,Bext], units)
     norm(magnetization_vector)
+end
+
+"""
+    cef_magnetization_multisite(sites::AbstractVector, T::Real, units::String="SI")::Union{Vector{Float64}, Float64}
+
+Calculate the magnetization of a system consisting of several magnetic ions
+in inequivalent crystal-field environments at a finite temperature and applied
+field.
+
+The applied field is read from the `cef_site` structure. The return type is
+either a `Vector{Float64}` if a vector field is included in `cef_site`.
+In the case of polycrystalline samples, a scalar value of `Bext` should be
+used in the definition of `cef_site`.
+
+`units` are one of either "SI", "CGS" or "atomic".
+"""
+function cef_magnetization_multisite(sites::AbstractVector, T::Real,
+                                    units::String="SI")::Union{Vector{Float64}, Float64}
+    magnetization = zero(Float64.(sites[1].Bext))
+    for site in sites
+        try
+            magnetization .+= cef_magnetization(site.single_ion, site.Blm, T,
+                                                site.Bext, units) * site.site_ratio
+        catch e
+            if isa(e, MethodError)
+                magnetization += cef_magnetization(site.single_ion, site.Blm, T,
+                                                    site.Bext, units) * site.site_ratio
+            else
+                @error e
+            end
+        end
+    end
+    magnetization
 end
 
 
@@ -215,7 +249,7 @@ function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame,
                            units::String="SI")::Vector{Float64}
     # method: Blm DataFrame, single-crystal
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
+    cef_eigensystem(single_ion, Blm, Bext)
     cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
@@ -234,10 +268,12 @@ function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame,
             0.03232776      # N_A * muB(J/T) * muB(meV/T) * mu0
         elseif isequal(units, "atomic")
             1.0
+        else
+            @warn "Units $units not understood. Use one of either 'SI', 'CGS' or 'atomic'"
         end
     end
     # Note that chi_SI = (4pi*10^-6)chi_cgs
-    susceptibility_vector .* single_ion.gJ^2 .* convfac
+    @. susceptibility_vector * single_ion.gJ^2 * convfac
 end
 
 
@@ -249,6 +285,40 @@ function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real,
         cef_susceptibility(single_ion, Blm, T, [0,Bext,0], units)+
         cef_susceptibility(single_ion, Blm, T, [0,0,Bext], units)
     norm(susceptibility_vector)
+end
+
+
+"""
+    cef_susceptibility_multisite(sites::AbstractVector, T::Real, units::String="SI")::Union{Vector{Float64}, Float64}
+
+Calculate the magnetic susceptibility of a system consisting of several
+magnetic ions in inequivalent crystal-field environments at a finite
+temperature and applied magnetic field.
+
+The applied field is read from the `cef_site` structure. The return type is
+either a `Vector{Float64}` if a vector field is included in `cef_site`.
+In the case of polycrystalline samples, a scalar value of `Bext` should be
+used in the definition of `cef_site`.
+
+`units` are one of either "SI", "CGS" or "atomic".
+"""
+function cef_susceptibility_multisite(sites::AbstractVector, T::Real,
+                                     units::String="SI")::Union{Vector{Float64}, Float64}
+    susceptibility = zero(Float64.(sites[1].Bext))
+    for site in sites
+        try
+            susceptibility .+= cef_susceptibility(site.single_ion, site.Blm, T,
+                                                 site.Bext, units) * site.site_ratio
+        catch e
+            if isa(e, MethodError)
+                susceptibility += cef_susceptibility(site.single_ion, site.Blm, T,
+                                                    site.Bext, units) * site.site_ratio
+            else
+                @error e
+            end
+        end
+    end
+    susceptibility
 end
 
 
