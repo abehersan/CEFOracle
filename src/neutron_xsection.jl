@@ -47,10 +47,9 @@ end
 
 
 """
-    cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, Real}, E::Float64, Q::Vector{<:Real}, T::Float64=2.0, Bext::Vector{Real}=[0,0,0], R::Function=TAS_resfunc)
-    cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64, Q::Vector{Real}, T::Float64=2.0, Bext::Vector{<:Real}=[0,0,0], R::Function=TAS_resfunc)
-    cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64, Q::Float64, T::Float64=2.0, Bext::Real=0, R::Function=TAS_resfunc)
-    cef_neutronxsection_multisite(sites::AbstractVector, E::Float64, Q::Float64, T::Float64=2.0, R::Function=TAS_resfunc)
+    cef_neutronxsection_crystal(single_ion::mag_ion, Blm::DataFrame; E::Float64=0.0, Q::Vector{Real}=[0,0,0], T::Float64=2.0, Bext::Vector{<:Real}=[0,0,0], R::Function=TAS_resfunc)
+    cef_neutronxsection_powder(single_ion::mag_ion, Blm::DataFrame; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, Bext::Real=0, R::Function=TAS_resfunc)
+    cef_neutronxsection_multisite(sites::AbstractVector; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, R::Function=TAS_resfunc)
 
 Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
 Hamiltonian.
@@ -72,24 +71,12 @@ For a polycrystal Q is a single real number.
 Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
 and eqn. (8.11) of Boothroyd.
 """
-function cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, <:Real},
-                            E::Float64, Q::Vector{Real}, T::Float64=2.0,
-                            Bext::Vector{<:Real}=[0, 0, 0],
-                            R::Function=TAS_resfunc)::Float64
-    # method: Blm dictionary, single-crystal
-    @warn "Blm Dictionary given. DataFrames are more performant!\n"*
-        "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
-    cef_neutronxsection(single_ion, blm_dframe(Blm), T, Bext, R, Q, E)
-end
-
-
-function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
-                            Q::Vector{<:Real}, T::Float64=2.0,
-                            Bext::Vector{Real}=[0, 0, 0],
-                            R::Function=TAS_resfunc)::Float64
-    # method: Blm DataFrame, single-crystal, 8.11 of Boothroyd
+function cef_neutronxsection_crystal(single_ion::mag_ion, Blm::DataFrame;
+                                    E::Real=0.0, Q::Vector{<:Real}=[0,0,0],
+                                    T::Float64=2.0, Bext::Vector{<:Real}=[0,0,0],
+                                    R::Function=TAS_resfunc)::Float64
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, Blm, Bext)
+        cef_eigensystem(single_ion, Blm, Bext=Bext)
     cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
@@ -112,10 +99,10 @@ function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
 end
 
 
-function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
-                            Q::Real, T::Float64, Bext::Real=0.0,
-                            R::Function=TAS_resfunc)::Float64
-    # method: Blm DataFrame, polycrystal, 8.12 of Boothroyd
+function cef_neutronxsection_powder(single_ion::mag_ion, Blm::DataFrame;
+                                   E::Real=0.0, Q::Real=0.0,
+                                   T::Float64=2.0, Bext::Real=0.0,
+                                   R::Function=TAS_resfunc)::Float64
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm)
     cef_energies .-= minimum(cef_energies)
@@ -140,8 +127,9 @@ function cef_neutronxsection_multisite(sites::AbstractVector, E::Float64,
                                       )::Float64
     ins_xsection::Float64 = 0.0
     for site in sites
-        ins_xsection += cef_neutronxsection(site.single_ion, site.Blm, E, Q, T,
-                                           Bext, R) * site.site_ratio
+        ins_xsection += cef_neutronxsection_powder(site.single_ion, site.Blm,
+                                                  E=E, Q=Q, T=T, Bext=Bext,
+                                                  R=R) * site.site_ratio
     end
     ins_xsection
 end

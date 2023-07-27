@@ -26,13 +26,13 @@ export cef_eigensystem, cef_eigensystem_multisite, cef_site
 
 
 include("./mag_properties.jl")
-export cef_magnetization, cef_magnetization_multisite
-export cef_susceptibility, cef_susceptibility_multisite
+export cef_magnetization_crystal, cef_magnetization_powder, cef_magnetization_multisite
+export cef_susceptibility_crystal, cef_susceptibility_powder, cef_susceptibility_multisite
 export cef_heatcapacity, cef_heatcapacity_speclevels
 
 
 include("./neutron_xsection.jl")
-export cef_neutronxsection, cef_neutronxsection_multisite
+export cef_neutronxsection_crystal, cef_neutronxsection_powder, cef_neutronxsection_multisite
 export TAS_resfunc, voigt, gauss, lorentz
 
 

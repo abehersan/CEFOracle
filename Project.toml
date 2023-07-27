@@ -1,7 +1,7 @@
 name = "CEFOracle"
 uuid = "7655a298-6d8b-4012-860e-cc9e21b0a61d"
 authors = ["Abe Hernández"]
-version = "0.9.2"
+version = "0.9.5"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"

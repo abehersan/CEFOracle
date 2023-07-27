@@ -8,28 +8,18 @@ Hamiltonian -> H = H_CEF + H_Zeeman
 
 
 """
-    cef_eigensystem(single_ion::mag_ion, Blm::Dict{String, Real}, Bx::Real, By::Real, Bz::Real:Real, verbose=false)
-    cef_eigensystem(single_ion::mag_ion, Blm::DataFrame, Bx::Real, By::Real, Bz::Real:Real, verbose=false)
+    cef_eigensystem(single_ion::mag_ion, Blm::DataFrame; Bext::Vector{<:Real}=zeros(3), verbose=false)
 
-Returns a tuple that contains the full Hamiltonian matrix,
+Returns a 3-tuple that contains the full Hamiltonian matrix,
 H = H_CEF + H_Zeeman,
 its eigenvalues and eigenvectors.
 
-`Bx`, `By` and `Bz` are the values of the applied magnetic field defined in
+`Bext = [Bx, By, Bz]` are the values of the applied magnetic field defined in
 units of Tesla. In addition, the xyz coordinate system is assumed to be
 parallel to the abc crystal coordinates, in which the CEF matrix is defined.
 """
-function cef_eigensystem(single_ion::mag_ion, Blm::Dict{String, <:Real},
-                        Bext::Union{Vector{<:Real}, Real}=[0,0,0]; verbose=false
-                        )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
-    @warn "Stevens parameters dictionary given. DataFrames are more performant!\n"*
-          "Define a Stevens parameters dataFrame with 'blm_dframe(blm_dict)'"
-    cef_eigensystem(single_ion, blm_dframe(Blm), Bext; verbose=verbose)
-end
-
-
-function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame,
-                        Bext::Vector{<:Real}=[0,0,0]; verbose=false
+function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame;
+                        Bext::Vector{<:Real}=zeros(3), verbose=false
                         )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = single_ion.J
     gJ = single_ion.gJ
@@ -84,7 +74,7 @@ function cef_eigensystem_multisite(sites::AbstractVector; verbose=false
     cef_wavefunctions = zeros(ComplexF64, (m_dim, m_dim))
     for site in sites
         cef_matrix += cef_eigensystem(site.single_ion, site.Blm,
-                                      site.Bext, verbose=false)[1] *
+                                      Bext=site.Bext, verbose=false)[1] *
                                       site.site_ratio
     end
     cef_wavefunctions = eigvecs(cef_matrix)
@@ -128,7 +118,7 @@ Compute the full CEF matrix given a set of Blm parameters
 """
 function H_cef(J::Float64, Blm::DataFrame)::Matrix{ComplexF64}
     m_dim = Int(2*J+1)
-    cef_matrix = zeros(ComplexF64, m_dim, m_dim)
+    cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
     for row in eachrow(Blm)
         cef_matrix += row.Blm * stevens_EO(J, row.l, row.m)
     end
@@ -241,6 +231,7 @@ function ryabov_clm(l::Int, m::Int)::Float64
         end
     end
     clm = alpha/(Flm) # Ryabov (1999) Eq.(22) without Nlm, not necessary
+
     # Nll = ((-1)^l * sqrt(factorial(2l)))/(2^l * factorial(l))
     # Nlm = (-1)^(l-m) * Nll*sqrt(factorial(l+m)/(factorial(l-m)*factorial(2l)))
     # clm = alpha/(Nlm*Flm) # Ryabov (1999) Eq.(22)
@@ -252,10 +243,8 @@ end
 
 
 """
-Calculate the explicit matrix form of the Stevens operator O^l_m
-Implementation of equation (21) of Ryabov (1999)
-This definition is consistent with the static list given in the McPhase manual
-for the Stevens operatos Olm
+Calculate the explicit matrix form of the Stevens operator O^m_l
+Implementation of equation (21) of Ryabov (1999).
 """
 function stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
     Jp = spin_operators(J, "+")
