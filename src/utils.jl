@@ -47,7 +47,8 @@ end
 
 
 function is_unitary(A::Matrix{<:Number})::Bool
-    isapprox(A * A', I, atol=1e-12) && isapprox(A' * A, I, atol=1e-12)
+    isapprox(A * A', I, atol=1e-12) && isapprox(A' * A, I, atol=1e-12) &&
+    isapprox(det(A).re, 1.0)
 end
 
 

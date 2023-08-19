@@ -3,7 +3,6 @@ module CEFOracle
 
 using DataFrames
 using LinearAlgebra
-using SpecialFunctions
 using StaticArrays
 using Statistics
 using OffsetArrays
@@ -33,7 +32,7 @@ export cef_heatcapacity, cef_heatcapacity_speclevels
 
 include("./neutron_xsection.jl")
 export cef_neutronxsection_crystal, cef_neutronxsection_powder, cef_neutronxsection_multisite
-export TAS_resfunc, voigt, gauss, lorentz
+export TAS_resfunc, gauss, lorentz
 
 
 include("./cef_ops.jl")

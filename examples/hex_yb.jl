@@ -51,14 +51,14 @@ reproduces figure 11 of the paper
 """
 T = 0.5
 fields = LinRange(0.0, 12, 150)
-mag_A_para = [cef_magnetization_crystal(yb,bdf_A,T=T,Bext=[b,0,0],units="ATOMIC")[1] for b in fields]
-mag_A_perp = [cef_magnetization_crystal(yb,bdf_A,T=T,Bext=[0,0,b],units="ATOMIC")[3] for b in fields]
-mag_B_para = [cef_magnetization_crystal(yb,bdf_B,T=T,Bext=[b,0,0],units="ATOMIC")[1] for b in fields]
-mag_B_perp = [cef_magnetization_crystal(yb,bdf_B,T=T,Bext=[0,0,b],units="ATOMIC")[3] for b in fields]
+mag_A_para = [cef_magnetization_crystal(yb,bdf_A,T=T,Bext=[b,0,0],units="ATOMIC") for b in fields]
+mag_A_perp = [cef_magnetization_crystal(yb,bdf_A,T=T,Bext=[0,0,b],units="ATOMIC") for b in fields]
+mag_B_para = [cef_magnetization_crystal(yb,bdf_B,T=T,Bext=[b,0,0],units="ATOMIC") for b in fields]
+mag_B_perp = [cef_magnetization_crystal(yb,bdf_B,T=T,Bext=[0,0,b],units="ATOMIC") for b in fields]
 # mag_A_powd = [cef_magnetization(yb,bdf_A,T,b,"atomic") for b in fields]
 # mag_B_powd = [cef_magnetization(yb,bdf_B,T,b,"atomic") for b in fields]
-mag_A_powd = 2/3 .* mag_A_perp .+ 1/3 .* mag_A_perp
-mag_B_powd = 2/3 .* mag_B_perp .+ 1/3 .* mag_B_perp
+mag_A_powd = @. 2/3 * mag_A_perp + 1/3 * mag_A_perp
+mag_B_powd = @. 2/3 * mag_B_perp + 1/3 * mag_B_perp
 mag_plot = plot(
             fields, [mag_A_para mag_A_perp mag_B_para mag_B_perp mag_A_powd mag_B_powd],
             label=[L"B\parallel c_{A}" L"B\perp c_{A}" L"B\parallel c_{B}" L"B\perp c_{B}" "Powder A" "Powder B"],
@@ -75,8 +75,8 @@ reproduces figure 14 of the paper
 """
 bext = 0.05
 temps = LinRange(0.5, 300, 150)
-invchi_para = [1/cef_susceptibility_crystal(yb,bdf_A,T=t,Bext=[0,0,bext],units="CGS")[3] for t in temps]
-invchi_perp = [1/cef_susceptibility_crystal(yb,bdf_A,T=t,Bext=[bext,0,0],units="CGS")[1] for t in temps]
+invchi_para = [1/cef_susceptibility_crystal(yb,bdf_A,T=t,Bext=[0,0,bext],units="CGS") for t in temps]
+invchi_perp = [1/cef_susceptibility_crystal(yb,bdf_A,T=t,Bext=[bext,0,0],units="CGS") for t in temps]
 # invchi_powd = [1/cef_susceptibility(yb,bdf_A,t,bext, "CGS") for t in temps]
 invchi_powd_c = (2/3 .* invchi_perp .+ 1/3 .* invchi_para)
 invchi_plot = plot(

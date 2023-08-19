@@ -147,6 +147,16 @@ function TAS_resfunc(E::Float64, Epeak::Float64,
 end
 
 
+gauss(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
+    amplitude * exp(-(x-center)^2 / (2*sigma^2)) / (sqrt(2pi) * sigma)
+
+
+lorentz(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
+    amplitude / pi * (sigma / ( (x-center)^2 + sigma^2 ) )
+
+
+"""
+Commented out since I wanted to get rid of the SpecialFunctions dependency
 function voigt(; x::Real, amplitude::Real, center::Real, sigma::Real,
               gamma::Real)::Float64
     # see https://lmfit.github.io/lmfit-py/builtin_models.html#lmfit.models.VoigtModel
@@ -156,11 +166,4 @@ function voigt(; x::Real, amplitude::Real, center::Real, sigma::Real,
     w = erfcx(-1im*z)
     amplitude * real(w) / (sqrt(2pi) * sigma)
 end
-
-
-gauss(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
-    amplitude * exp(-(x-center)^2 / (2*sigma^2)) / (sqrt(2pi) * sigma)
-
-
-lorentz(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
-    amplitude / pi * (sigma / ( (x-center)^2 + sigma^2 ) )
+"""
