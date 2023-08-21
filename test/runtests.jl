@@ -1,11 +1,6 @@
 using CEFOracle
 using Test
 
-@testset "CEFOracle.jl" begin
-    @test test_mcphase()
-    @test wignerD_unitary()
-    @test rotation_invariance_eigenvalues()
-end
 
 """
     test_mcphase()
@@ -60,6 +55,12 @@ function rotation_invariance_eigenvalues()
     true
 end
 
+
+@testset "CEFOracle.jl" begin
+    @test test_mcphase()
+    @test wignerD_unitary()
+    @test rotation_invariance_eigenvalues()
+end
 
 # test wigner d against tables from this paper
 # https://www.worldscientific.com/doi/epdf/10.1142/9789814415491_0005
