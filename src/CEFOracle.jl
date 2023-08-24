@@ -6,6 +6,7 @@ using LinearAlgebra
 using StaticArrays
 using Statistics
 using OffsetArrays
+using SparseArrays
 
 
 include("./single_ion.jl")

@@ -37,13 +37,13 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame;
     cef_energies = eigvals(cef_matrix)
     if verbose
         println("---CEF matrix diagonalization results---")
-        println("External field in Tesla")
+        println("External field in [Tesla]")
         println("[Bx, By, Bz] = $Bext")
-        println("CEF parameters:")
+        println("CEF parameters in [meV]:")
         display(Blm)
-        println("CEF matrix, basis vectors are |J, -MJ>, ... |J, MJ>")
-        display(cef_matrix)
-        println("CEF-split single-ion energy levels in meV:")
+        println("CEF matrix, basis vectors |J, -MJ>, ... |J, MJ>")
+        display(sparse(cef_matrix))
+        println("CEF-split single-ion energy levels in [meV]:")
         display(cef_energies .- minimum(cef_energies))
     end
     (cef_matrix, cef_energies, cef_wavefunctions)
