@@ -7,56 +7,57 @@ determined by Euler angles alpha, beta and gamma
 
 
 """
-Original rotation routine in Hamiltonian definition
+    ZYZ_rotmatrix(alpha::Real, beta::Real, gamma::Real)::Matrix{Float64}
 
-    # The Zeeman Hamiltonian is included in the total Hamiltonian
-    # via the O1m operators
-    Blm_wf = copy(Blm)
-    B11 =-muB*Bx*gJ; B1m1 =-muB*By*gJ; B10 =-muB*Bz*gJ
-    Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  1), :Blm] .= B11
-    Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .== -1), :Blm] .= B1m1
-    Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  0), :Blm] .= B10
-    cef_matrix = H_cef(J, Blm_wf)
-    TODO: verify that the rotation of the CEF Hamiltonian is as
-    expected, i.e. that the expectation values of the operators
-    in the non-rotated frame are as you would expect...
-    Blm_rot = rotate_Blm(Blm_wf, alpha, beta, gamma)
+Rotation matrix for the proper Euler angles `alpha`, `beta` and `gamma` in radian
+for active rotations of vectors via `v_rot = M * v_ori` and matrices
+`m_rot = M * m_ori * transpose(M)`, where `M` is the rotation matrix.
 """
+function ZYZ_rotmatrix(alpha::Real, beta::Real, gamma::Real)::Matrix{Float64}
+    a, b, g = map(Float64, [alpha, beta, gamma])
+    Z_rot(a) * Y_rot(b) * Z_rot(g)
+end
+
+
+X_rot(theta::Float64)::Matrix{Float64} = [1 0 0;
+                                          0 cos(theta) -sin(theta);
+                                          0 sin(theta) cos(theta)]
+
+
+Y_rot(theta::Float64)::Matrix{Float64} = [cos(theta) 0 sin(theta);
+                                          0 1 0;
+                                          -sin(theta) 0 cos(theta)]
+
+
+Z_rot(theta::Float64)::Matrix{Float64} = [cos(theta) -sin(theta) 0;
+                                          sin(theta) cos(theta) 0;
+                                          0 0 1]
 
 
 """
-    get_euler_angles(v::Vector{<:Real})::Vector{Float64}
+    get_euler_angles(v::Vector{<:Real})::Tuple{Float64, Float64, Float64}
 
-Gets the Euler angles alpha, beta and gamma (in radian) that take vector
-V1 = (0, 0, 1) to v.
-v is assumed to be the unit vector along the z-axis which is parallel to the
-c-direction.
-v defines the new quantization axis in the rotated coordinate frame.
+Gets the Euler angles `alpha`, `beta` and `gamma` (in radian) that take vector
+``V1 = (0, 0, 1)`` to the direction of ``v``.
 """
-function get_euler_angles(v::Vector{<:Real})::Vector{Float64}
+function get_euler_angles(v::Vector{<:Real})::Tuple{Float64, Float64, Float64}
     if isequal(zeros(Real, 3), v)
-        return zeros(Real, 3)
+        return (0.0, 0.0, 0.0)
     end
     v_norm = v / norm(v)
     alpha = atan(v_norm[2], v_norm[1])# / pi * 180.0
     beta = atan((v_norm[1]^2 + v_norm[2]^2), v_norm[3])# / pi * 180.0
     gamma = 0.0
-    [alpha, beta, gamma]
+    (alpha, beta, gamma) # in radian
 end
 
 
 """
-General rotation matrix that rotates the Ja, Jb, Jc operators around
-the ZYZ Euler angles alpha, beta, gamma
-R(alpha, beta, gamma) = e^(-i alpha Jz)*e^(-i beta Jy)*e^(-i gamma Jz)
+    wigner_D(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
 
-In the basis where Jz is diagonal, e^(-i beta Jy) is not diagonal.
-
-Rotation matrix elements of the rotation operator for tensor operators
-as defined in chapter 6.4 and 6.8 of Lindner, A. (1984).
+Returns the Wigner-D (2l+1)x(2l+1) rotation matrix for the sperical tensor
+operator of rank l as defined in chapter 6.4 and 6.8 of Lindner, A. (1984).
 Drehimpulse in der Quantenmechanik.
-
-wigner_D is a (2l+1)x(2l+1) rotation matrix for the spherical tensor op. rank l
 """
 function wigner_D(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
     m_dim = Int(2*l+1)
@@ -75,7 +76,7 @@ end
 
 function rotation_matrix_element(l::Int, m::Int, mp::Int, alpha::Real,
                                 beta::Real, gamma::Real)::ComplexF64
-    exp(1.0im*mp*alpha) * small_d(l, mp, m, beta) * exp(1.0im*m*gamma)
+    exp(-1.0im*mp*alpha) * small_d(l, mp, m, beta) * exp(-1.0im*m*gamma)
 end
 
 
@@ -83,25 +84,18 @@ function small_d(l::Int, mp::Int, m::Int, beta::Real)::Float64
     if iszero(beta)
         return isequal(m, mp) * 1.0 # delta function d_m'm if beta=0
     end
-    # s = 0
     djmpm = 0.0
-    # while binomial(Int(l+m), Int(l-mp-s))>0 && binomial(Int(l-m), Int(s))>0
     smin = Int(maximum([0, -(m+mp)]))
     smax = Int(minimum([l-m, l-mp]))
-    # println("smin: $smin, smax: $smax")
     for s in smin:1:smax
         djmpm += (-1)^(l-m-s)*
         ((cos(beta/2))^(2s+mp+m))*
-        # ((sin(beta/2))^(2l-2s))* # Danielsen-Lindgård
-        ((sin(beta/2))^(2l-2s-m-mp))* # Lindner
+        ((sin(beta/2))^(2l-2s-m-mp))*
         binomial(Int(l+m), Int(l-mp-s))*
         binomial(Int(l-m), Int(s))
-        # s += 1
     end
-    djmpm *= sqrt(
-        (factorial(Int(l+mp))*factorial(Int(l-mp)))/
-        (factorial(Int(l+m))*factorial(Int(l-m)))
-       )
+    djmpm *= sqrt((factorial(Int(l+mp))*factorial(Int(l-mp)))/
+                  (factorial(Int(l+m))*factorial(Int(l-m))))
     if isequal(djmpm, NaN) || isequal(djmpm, Inf)
         err_message =
         "Matrix element djmpm is NaN or Inf!\n"*
@@ -142,11 +136,11 @@ function rotate_blm(Blm::DataFrame, alpha::Real, beta::Real, gamma::Real)::DataF
             end
         end
         # S * Blm where Blm is a (2l+1) vector
-        Blm_rot = S_matrix * Blm_ori
+        Blm_rot .= S_matrix * Blm_ori
         # @assert norm(imag(Blm_rot)) < 1e-12
-        Blm_res = real(Blm_rot)
+        Blm_res .= real(Blm_rot)
         append!(Blm_rotated,
-            DataFrame("Blm"=>Blm_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
+                DataFrame("Blm"=>Blm_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
     end
     Blm_rotated
 end
@@ -154,9 +148,9 @@ end
 
 function rotate_stevens(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
     rot_mat = zeros(ComplexF64, (2l+1, 2l+1))
-    rot_mat = transpose(inv(Alm_matrix(l))) *
-        wigner_D(l, alpha, beta, gamma)' *
-        transpose(Alm_matrix(l))
+    rot_mat .= transpose(inv(Alm_matrix(l))) * wigner_D(l, alpha, beta, gamma)' *
+              transpose(Alm_matrix(l))
+    rot_mat
 end
 
 

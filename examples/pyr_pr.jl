@@ -24,7 +24,6 @@ es = LinRange(-20, 100, 700)
 temps = [5.0, 25.0, 100.0]
 ins_plot = plot(xlabel="Energy [meV]", ylabel="I(Q, E) [arb. units]")
 for t in temps
-    plot!(es, [cef_neutronxsection(pr, bs_dframe, e, 2.55, t) for e in es],
-          label="T=$t")
+    plot!(es, [cef_neutronxsection_powder(pr, bs_dframe, E=e, Q=2.55, T=t) for e in es], label="T=$t")
 end
 display(ins_plot)

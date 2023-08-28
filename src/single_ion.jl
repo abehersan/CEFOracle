@@ -8,17 +8,20 @@ Define single-ion properties such as J, gJ and stevens multiplicative factors
 """
     single_ion(ion::String)
 
-Given a magnetic ion name, generate a mag_ion object with the following info:
+Given a magnetic ion name, generate a `mag_ion` structure that contains
+the following data:
 
-- J, lande-factor gJ
-- Stevens geometric factors theta_l, alpha, beta, gamma
-- Radial wave functions <r^l> r2, r4, r6
+- Total angular momentum quantum number J, Landé-factor gJ
+- Stevens' geometric factors theta_l, alpha, beta, gamma
+- Expectation value of radial wave functions <r^l>, r2, r4, r6
 - Dipolar magnetic form factor coefficients
+
+Currently only tripositive rare-earth ions are supported.
 
 Coefficients taken from Rotter Bauer (2010),
 the McPhase online manual: http://www.mcphase.de/manual5_5/node129.html
 and Brown's coefficients https://www.ill.eu/sites/ccsl/ffacts/ffactnode1.html
-to be used in the dipole-approximation equations (6.30) and (6.52) of Boothroyd
+to be used in the dipole-approximation equations (6.30) and (6.52) of Boothroyd.
 """
 function single_ion(ion::String)
     mag_ground_state = Dict(

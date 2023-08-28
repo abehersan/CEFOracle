@@ -8,6 +8,7 @@ Calculate the neutron cross-section given the Hamiltonian H = H_CEF + H_Zeeman
 """
 Magnetic form factor in the dipolar approximation
 Implementation of equations (6.30) and (6.52) of Boothroyd
+Q is in units of reciprocal Angstrom
 """
 function dipolar_form_factor(ion::mag_ion, Q::Real)::Float64
     A_j0, a_j0, B_j0, b_j0, C_j0, c_j0, D_j0 = ion.ff_coeff_j0
@@ -15,8 +16,7 @@ function dipolar_form_factor(ion::mag_ion, Q::Real)::Float64
     s = Q / 4pi
     ff_j0 = A_j0 * exp(-a_j0*s^2) + B_j0 * exp(-b_j0*s^2) + C_j0 * exp(-c_j0*s^2) + D_j0
     ff_j2 = A_j2*s^2 * exp(-a_j2*s^2) + B_j2*s^2 * exp(-b_j2*s^2) + C_j2*s^2 * exp(-c_j2*s^2) + D_j2*s^2
-    mag_ff = ff_j0 + ( (2-ion.gJ)/ion.gJ ) * ff_j2
-    return mag_ff
+    ff_j0 + ( (2-ion.gJ)/ion.gJ ) * ff_j2
 end
 
 
@@ -47,19 +47,19 @@ end
 
 
 """
-    cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, Real}, E::Float64, Q::Vector{Real}=[0,0,0], R::Function=TAS_resfunc)
-    cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64, Q::Vector{Real}=[0,0,0], R::Function=TAS_resfunc)
-    cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Float64, Q::Float64, R::Function=TAS_resfunc)
+    cef_neutronxsection_crystal(single_ion::mag_ion, Blm::DataFrame; E::Float64=0.0, Q::Vector{Real}=[0,0,0], T::Float64=2.0, Bext::Vector{<:Real}=[0,0,0], R::Function=TAS_resfunc)
+    cef_neutronxsection_powder(single_ion::mag_ion, Blm::DataFrame; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, Bext::Real=0, R::Function=TAS_resfunc)
+    cef_neutronxsection_multisite(sites::AbstractVector; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, R::Function=TAS_resfunc)
 
 Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
 Hamiltonian.
 
 A custom resolution function is admitted and must have the following
 call signature:
-`resfunc(E, Epeak, width)::Float64`
+`resfunc(E, Epeak, width::Function(E))::Float64`
 `E` is is the energy where the intensity is being calculated,
 `Epeak` is is the energy of the actual CEF excitation and
-`width` is the resolution in units of energy at `E`.
+`width` is a function that returns the resolution (FWHM) evaluated at `E`.
 
 The form factor in the dipolar approximation is included in the calculation of
 the x-section.
@@ -71,24 +71,12 @@ For a polycrystal Q is a single real number.
 Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
 and eqn. (8.11) of Boothroyd.
 """
-function cef_neutronxsection(single_ion::mag_ion, Blm::Dict{String, <:Real},
-                            E::Float64, Q::Vector{Real}, T::Float64=2.0,
-                            Bext::Vector{<:Real}=[0, 0, 0],
-                            R::Function=TAS_resfunc)::Float64
-    # method: Blm dictionary, single-crystal
-    @warn "Blm Dictionary given. DataFrames are more performant!\n"*
-        "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
-    cef_neutronxsection(single_ion, blm_dframe(Blm), T, Bext, R, Q, E)
-end
-
-
-function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
-                            Q::Vector{<:Real}, T::Float64=2.0,
-                            Bext::Vector{Real}=[0, 0, 0],
-                            R::Function=TAS_resfunc)::Float64
-    # method: Blm DataFrame, single-crystal, 8.11 of Boothroyd
+function cef_neutronxsection_crystal(single_ion::mag_ion, Blm::DataFrame;
+                                    E::Real=0.0, Q::Vector{<:Real}=[0,0,0],
+                                    T::Float64=2.0, Bext::Vector{<:Real}=[0,0,0],
+                                    R::Function=TAS_resfunc)::Float64
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
+        cef_eigensystem(single_ion, Blm, Bext=Bext)
     cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
@@ -106,15 +94,15 @@ function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
     for a in eachindex(Q), b in eachindex(Q)
         pol_factor[a, b] = (isequal(a, b) * 1.0 - Q[a]*Q[b]/Qnorm)
     end
-    ins_xsection::Float64 =
-        abs(dipolar_form_factor(single_ion, Qnorm))^2 * sum(pol_factor .* S_alphabeta)
+    ins_xsection::Float64 = abs(dipolar_form_factor(single_ion, Qnorm))^2 *
+                            sum(pol_factor .* S_alphabeta)
 end
 
 
-function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
-                            Q::Real, T::Float64, Bext::Real=0.0,
-                            R::Function=TAS_resfunc)::Float64
-    # method: Blm DataFrame, polycrystal, 8.12 of Boothroyd
+function cef_neutronxsection_powder(single_ion::mag_ion, Blm::DataFrame;
+                                   E::Real=0.0, Q::Real=0.0,
+                                   T::Float64=2.0, Bext::Real=0.0,
+                                   R::Function=TAS_resfunc)::Float64
     _, cef_energies, cef_wavefunctions =
         cef_eigensystem(single_ion, Blm)
     cef_energies .-= minimum(cef_energies)
@@ -128,8 +116,22 @@ function cef_neutronxsection(single_ion::mag_ion, Blm::DataFrame, E::Real,
                                         R=R, E=E, J_alpha=spin_ops[a],
                                         J_beta=spin_ops[a], T=T)
     end
-    ins_xsection::Float64 =
-        abs(dipolar_form_factor(single_ion, Q))^2 * (2.0/3.0 * S_alphabeta)
+    ins_xsection::Float64 = abs(dipolar_form_factor(single_ion, Q))^2 *
+                            (2.0/3.0 * S_alphabeta)
+end
+
+
+function cef_neutronxsection_multisite(sites::AbstractVector, E::Float64,
+                                      Q::Float64, T::Float64=2.0,
+                                      Bext::Float64=0.0, R::Function=TAS_resfunc
+                                      )::Float64
+    ins_xsection::Float64 = 0.0
+    for site in sites
+        ins_xsection += cef_neutronxsection_powder(site.single_ion, site.Blm,
+                                                  E=E, Q=Q, T=T, Bext=Bext,
+                                                  R=R) * site.site_ratio
+    end
+    ins_xsection
 end
 
 
@@ -145,6 +147,16 @@ function TAS_resfunc(E::Float64, Epeak::Float64,
 end
 
 
+gauss(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
+    amplitude * exp(-(x-center)^2 / (2*sigma^2)) / (sqrt(2pi) * sigma)
+
+
+lorentz(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
+    amplitude / pi * (sigma / ( (x-center)^2 + sigma^2 ) )
+
+
+"""
+Commented out since I wanted to get rid of the SpecialFunctions dependency
 function voigt(; x::Real, amplitude::Real, center::Real, sigma::Real,
               gamma::Real)::Float64
     # see https://lmfit.github.io/lmfit-py/builtin_models.html#lmfit.models.VoigtModel
@@ -154,11 +166,4 @@ function voigt(; x::Real, amplitude::Real, center::Real, sigma::Real,
     w = erfcx(-1im*z)
     amplitude * real(w) / (sqrt(2pi) * sigma)
 end
-
-
-gauss(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
-    amplitude * exp(-(x-center)^2 / (2*sigma^2)) / (sqrt(2pi) * sigma)
-
-
-lorentz(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
-    amplitude / pi * (sigma / ( (x-center)^2 + sigma^2 ) )
+"""

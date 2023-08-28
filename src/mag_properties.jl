@@ -10,7 +10,7 @@ Calculate Boltzmann thermal occupation factors defined as
 np = e^(-Ep / kBT)/Z, for all eigenenergies Ep of a Hamiltonian
 the partition function is Z
 """
-population_factor(Ep::Vector{Float64}, T::Float64)::Vector{Float64} =
+population_factor(Ep::Vector{Float64}, T::Real)::Vector{Float64} =
     exp.(-Ep/(kB*T))/partition_function(Ep, T)
 
 
@@ -18,7 +18,7 @@ population_factor(Ep::Vector{Float64}, T::Float64)::Vector{Float64} =
 Calculate the partition function given the eigenvalues of a Hamiltonian
 Z = sum_p e^(-Ep/kBT)
 """
-partition_function(Ep::Vector{Float64}, T::Float64)::Float64 =
+partition_function(Ep::Vector{Float64}, T::Real)::Float64 =
     sum(exp.(-Ep/(kB*T)))
 
 
@@ -41,7 +41,7 @@ where |p> are the eigenstates of a Hamiltonian and np are the respective
 populations factors at finite temperature
 """
 function thermal_average(Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
-                        operator::Matrix{ComplexF64}, T::Float64)::Float64
+                        operator::Matrix{ComplexF64}, T::Real)::Float64
     matrix_elements = zeros(Float64, length(Ep))
     for p in eachindex(Ep)
         matrix_elements[p] = transition_matrix_element(n=Vp[:,p],
@@ -69,43 +69,23 @@ end
 
 
 """
-    cef_magnetization(single_ion::mag_ion, Blm::Dict{String, Real}, T::Real, Bext::Vector{Real}, units::String="SI")::Vector{Float64}
-    cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real, Bext::Vector{Real}, units::String="SI")::Vector{Float64}
-    cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real, Bext::Real, units::String="SI")::Float64
+    cef_magnetization_crystal(single_ion::mag_ion, Blm::DataFrame; T::Real=1.5, Bext::Vector{<:Real}=zeros(3), units::String="SI")::Float64
 
 Calculate the isothermal magnetization for a system under the application of
 and external magnetic field for a given CEF model.
 
-For calculation of the magnetization for a single-crystal sample, `Bext` should
-be a vector that contains the value of the applied field in Tesla.
-For a polycrystal, the field should be inputted as a single scalar value in
-Tesla.
-
-The powder averaging is calculated as ``M_powder = norm(Mx2+My2+Mz2)``.
-
-`units` can be either one of `SI`, `CGS` or `atomic`. `atomic` refers to the
+`units` can be either one of `SI`, `CGS` or `ATOMIC`. `ATOMIC` refers to the
 magnetization in units of Bohr's magneton.
 
 Implementation of equation (79) and (82) p.218-219 in
 Bauer, E., & Rotter, M. (2010).
 and equivalently equation 9.23 of Furrer/Messot/Strässle
 """
-function cef_magnetization(single_ion::mag_ion, Blm::Dict{String, <:Real},
-                          T::Real, Bext::Vector{<:Real},
-                          units::String="SI")::Vector{Float64}
-    # method: Blm dictionary, single-crystal
-    @warn "Blm Dictionary given. DataFrames are more performant!\n"*
-        "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
-    cef_magnetization(single_ion, blm_dframe(Blm), T, Bext, units)
-end
-
-
-function cef_magnetization(single_ion::mag_ion, Blm::DataFrame,
-                          T::Real, Bext::Vector{<:Real},
-                          units::String="SI")::Vector{Float64}
-    # method: Blm DataFrame, single-crystal
+function cef_magnetization_crystal(single_ion::mag_ion, Blm::DataFrame;
+                          T::Real=1.5, Bext::Vector{<:Real}=zeros(3),
+                          units::String="SI")::Float64
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
+        cef_eigensystem(single_ion, Blm, Bext=Bext)
     cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
@@ -113,31 +93,84 @@ function cef_magnetization(single_ion::mag_ion, Blm::DataFrame,
     magnetization_vector = zeros(Float64, 3)
     spin_ops = [Jx, Jy, Jz]
     for a in eachindex(spin_ops)
-        magnetization_vector[a] =
-            calc_magnetization(Ep=cef_energies, Vp=cef_wavefunctions,
-                              J_alpha=spin_ops[a], T=T)
+        magnetization_vector[a] = calc_magnetization(Ep=cef_energies,
+                                              Vp=cef_wavefunctions,
+                                              J_alpha=spin_ops[a], T=T)
     end
     convfac = begin
         if isequal(units, "SI")
             5.5849397           # NA * muB  [J/T/mol]
         elseif isequal(units, "CGS")
             5.5849397*1000.0    # NA * muB  [emu/mol]
-        elseif isequal(units, "atomic")
+        elseif isequal(units, "ATOMIC")
             1.0
+        else
+            @error "Units $units not understood. Use one of either 'SI', 'CGS' or 'ATOMIC'"
         end
     end
-    magnetization_vector .* single_ion.gJ .* convfac
+    dot(magnetization_vector .* (convfac * single_ion.gJ), Bext / norm(Bext))
 end
 
 
-function cef_magnetization(single_ion::mag_ion, Blm::DataFrame, T::Real,
-                          Bext::Real, units::String="SI")::Float64
-    # method: Blm DataFrame, polycrystal
-    magnetization_vector::Vector{Float64} =
-        cef_magnetization(single_ion, Blm, T, [Bext,0,0], units) +
-        cef_magnetization(single_ion, Blm, T, [0,Bext,0], units) +
-        cef_magnetization(single_ion, Blm, T, [0,0,Bext], units)
+"""
+    cef_magnetization_powder(single_ion::mag_ion, Blm::DataFrame; T::Real=1.5, Bext::Real=0.0, units::String="SI")::Float64
+
+Calculate the isothermal magnetization for a system under the application of
+and external magnetic field for a given CEF model.
+
+The powder average is calculated as ``M_powder = norm(Mx2+My2+Mz2)``.
+
+`units` can be either one of `SI`, `CGS` or `ATOMIC`. `ATOMIC` refers to the
+magnetization in units of Bohr's magneton.
+
+Implementation of equation (79) and (82) p.218-219 in
+Bauer, E., & Rotter, M. (2010).
+and equivalently equation 9.23 of Furrer/Messot/Strässle
+"""
+function cef_magnetization_powder(single_ion::mag_ion, Blm::DataFrame;
+                                 T::Real=1.5, Bext::Real=0.0, units::String="SI")::Float64
+    magnetization_vector::Vector{Float64} = [
+        cef_magnetization_crystal(single_ion, Blm, T=T, Bext=[Bext,0,0], units=units),
+        cef_magnetization_crystal(single_ion, Blm, T=T, Bext=[0,Bext,0], units=units),
+        cef_magnetization_crystal(single_ion, Blm, T=T, Bext=[0,0,Bext], units=units)
+       ]
     norm(magnetization_vector)
+end
+
+
+"""
+    cef_magnetization_multisite(sites::AbstractVector; T::Real=1.5, units::String="SI")::Float64
+
+Calculate the magnetization of a system consisting of several magnetic ions
+in inequivalent crystal-field environments at a finite temperature and applied
+field.
+
+The applied field is read from the `cef_site` structure.
+In the case of polycrystalline samples, a scalar value of `Bext` should be
+used in the definition of `cef_site`.
+
+`units` can be either one of `SI`, `CGS` or `ATOMIC`. `ATOMIC` refers to the
+magnetization in units of Bohr's magneton.
+"""
+function cef_magnetization_multisite(sites::AbstractVector; T::Real=1.5,
+                                    units::String="SI")::Union{Vector{Float64}, Float64}
+    magnetization_vector::Float64 = 0.0
+    for site in sites
+        try
+            magnetization_vector += cef_magnetization_crystal(site.single_ion, site.Blm,
+                                                              T=T, Bext=site.Bext,
+                                                              units=units) * site.site_ratio
+        catch e
+            if isa(e, MethodError)
+                magnetization_vector += cef_magnetization_powder(site.single_ion, site.Blm,
+                                                                 T=T, Bext=site.Bext,
+                                                                 units) * site.site_ratio
+            else
+                @error e
+            end
+        end
+    end
+    magnetization_vector
 end
 
 
@@ -152,7 +185,7 @@ Rare earth magnetism. Oxford: Clarendon Press.
 Equivalently, implementation of equation 9.24 of Furrer/Messot/Strässle
 """
 function calc_susceptibility(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
-                            J_alpha::Matrix{ComplexF64}, T::Float64)::Float64
+                            J_alpha::Matrix{ComplexF64}, T::Real)::Float64
     chi_alphaalpha::Float64 = 0.0
     np_all = population_factor(Ep, T) # 2J+1 vector
     for (p, ep) in enumerate(Ep), (pp, epp) in enumerate(Ep)
@@ -177,9 +210,8 @@ end
 
 
 """
-    cef_susceptibility(single_ion::mag_ion, Blm::Dict{String, Real}, T::Real, Bext::Vector{Real}, units::String="SI")::Vector{Float64}
-    cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real, Bext::Vector{Real}, units::String="SI")::Vector{Float64}
-    cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real, Bext::Real, units::String="SI")::Float64
+    cef_susceptibility_crystal(single_ion::mag_ion, Blm::DataFrame; T::Real=1.5, Bext::Vector{<:Real}=zeros(3), units::String="SI")::Float64
+    cef_susceptibility_powder(single_ion::mag_ion, Blm::DataFrame; T::Real=1.5, Bext::Real=1.5, units::String="SI")::Float64
 
 Calculate the static susceptibility of a system given a CEF model
 and an applied magnetic field field.
@@ -187,12 +219,12 @@ Calculations are done for a fixed temperature.
 
 For calculation of the susceptibility for a single-crystal sample, `Bext` should
 be a vector that contains the value of the applied field in Tesla.
+
 For a polycrystal, the field should be inputted as a single scalar value in
 Tesla.
-
 The powder averaging is calculated as ``Chi_powder = norm(Chix^2+Chiy^2+Chiz^2)``.
 
-`units` can be either one of `SI`, `CGS` or `atomic`. `atomic` refers to the
+`units` can be either one of `SI`, `CGS` or `ATOMIC`. `ATOMIC` refers to the
 magnetization in units of Bohr's magneton.
 
 Implementation of the diagonal elements of equation (2.1.18) p.76 in
@@ -200,22 +232,11 @@ Jensen, J., & Mackintosh, A. R. (1991).
 Rare earth magnetism. Oxford: Clarendon Press.
 Equivalently, implementation of equation 9.24 of Furrer/Messot/Strässle
 """
-function cef_susceptibility(single_ion::mag_ion, Blm::Dict{String, <:Real},
-                           T::Real, Bext::Vector{<:Real},
-                           units::String="SI")::Vector{Float64}
-    # method: Blm dictionary, single-crystal
-    @warn "Blm Dictionary given. DataFrames are more performant!\n"*
-        "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
-    cef_susceptibility(single_ion, blm_dframe(Blm), T, Bext, units)
-end
-
-
-function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame,
-                           T::Real, Bext::Vector{<:Real},
-                           units::String="SI")::Vector{Float64}
-    # method: Blm DataFrame, single-crystal
+function cef_susceptibility_crystal(single_ion::mag_ion, Blm::DataFrame;
+                                   T::Real=1.5, Bext::Vector{<:Real}=zeros(3),
+                                   units::String="SI")::Float64
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, Blm, Bext[1], Bext[2], Bext[3])
+    cef_eigensystem(single_ion, Blm, Bext=Bext)
     cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
@@ -232,23 +253,65 @@ function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame,
             4.062426*1e-7   # N_A * muB(erg/G) * muB(meV/G)
         elseif isequal(units, "CGS")
             0.03232776      # N_A * muB(J/T) * muB(meV/T) * mu0
-        elseif isequal(units, "atomic")
+        elseif isequal(units, "ATOMIC")
             1.0
+        else
+            @warn "Units $units not understood. Use one of either 'SI', 'CGS' or 'ATOMIC'"
         end
     end
     # Note that chi_SI = (4pi*10^-6)chi_cgs
-    susceptibility_vector .* single_ion.gJ^2 .* convfac
+    dot(susceptibility_vector .* (convfac * single_ion.gJ), Bext/norm(Bext))
 end
 
 
-function cef_susceptibility(single_ion::mag_ion, Blm::DataFrame, T::Real,
-                           Bext::Real, units::String="SI")::Float64
-    # method: Blm DataFrame, polycrystal
-    susceptibility_vector::Vector{Float64} =
-        cef_susceptibility(single_ion, Blm, T, [Bext,0,0], units)+
-        cef_susceptibility(single_ion, Blm, T, [0,Bext,0], units)+
-        cef_susceptibility(single_ion, Blm, T, [0,0,Bext], units)
+function cef_susceptibility_powder(single_ion::mag_ion, Blm::DataFrame;
+                                  T::Real=1.5, Bext::Real=0.0,
+                                  units::String="SI")::Float64
+    susceptibility_vector::Vector{Float64} = [
+        cef_susceptibility_crystal(single_ion, Blm, T=T, Bext=[Bext,0,0], units=units),
+        cef_susceptibility_crystal(single_ion, Blm, T=T, Bext=[0,Bext,0], units=units),
+        cef_susceptibility_crystal(single_ion, Blm, T=T, Bext=[0,0,Bext], units=units)
+       ]
     norm(susceptibility_vector)
+end
+
+
+"""
+    TODO: rewrite / optimize in view of updated cef_XXX_powder/crystal methods
+    cef_susceptibility_multisite(sites::AbstractVector, T::Real, units::String="SI")::Union{Vector{Float64}, Float64}
+
+Calculate the magnetic susceptibility of a system consisting of several
+magnetic ions in inequivalent crystal-field environments at a finite
+temperature and applied magnetic field.
+
+The applied field is read from the `cef_site` structure. The return type is
+either a `Vector{Float64}` if a vector field is included in `cef_site`.
+In the case of polycrystalline samples, a scalar value of `Bext` should be
+used in the definition of `cef_site`.
+
+`units` are one of either "SI", "CGS" or "ATOMIC".
+"""
+function cef_susceptibility_multisite(sites::AbstractVector, T::Real,
+                                     units::String="SI")::Union{Vector{Float64}, Float64}
+    susceptibility_vector = zero(Float64.(sites[1].Bext))
+    for site in sites
+        try
+            susceptibility_vector .+= cef_susceptibility_crystal(site.single_ion,
+                                                                 site.Blm, T=T,
+                                                                 Bext=site.Bext,
+                                                                 units=units) * site.site_ratio
+        catch e
+            if isa(e, MethodError)
+                susceptibility_vector += cef_susceptibility_powder(site.single_ion,
+                                                                  site.Blm, T=T,
+                                                                  Bext=site.Bext,
+                                                                  units=units) * site.site_ratio
+            else
+                @error e
+            end
+        end
+    end
+    susceptibility_vector
 end
 
 
@@ -262,14 +325,12 @@ function calc_heatcap(; Ep::Vector{Float64}, T::Real)::Float64
     np = population_factor(Ep, T)
     heatcap += sum((Ep/(kB*T)).^2 .* np)
     heatcap -= sum((Ep/(kB*T).*np).^2)
-    return heatcap
+    heatcap
 end
 
 
 """
-    cef_heatcapacity(single_ion::mag_ion, Blm::Dict{String, Real}, T::Real, units::String="SI")::Vector{Float64}
-    cef_heatcapacity(single_ion::mag_ion, Blm::DataFrame, T::Real, units::String="SI")::Vector{Float64}
-    cef_heatcapacity_speclevels(single_ion::mag_ion, Blm::DataFrame, T::Real, levels::UnitRange=1:4, units::String="SI")::Vector{Float64}
+    cef_heatcapacity(single_ion::mag_ion, Blm::DataFrame; T::Real=1.5, units::String="SI")::Float64
 
 Calculate the specific heat capacity (at constant pressure) of a CEF model.
 Selecting which CEF excitations contribute to the specific heat capacity is
@@ -277,18 +338,8 @@ supported in the `cef_heatcapacity_speclevels` function.
 
 Implementation of equation 9.25 of Furrer/Messot/Strässle.
 """
-function cef_heatcapacity(single_ion::mag_ion, Blm::Dict{String, <:Real},
-                         T::Real, units::String="SI")::Float64
-    # method: Blm dictionary, single environment
-    @warn "Blm Dictionary given. DataFrames are more performant!\n"*
-        "Compute a Blm DataFrame with 'blm_dframe(blm_dict)'"
-    cef_heatcap(single_ion, blm_dframe(Blm), T, units)
-end
-
-
-function cef_heatcapacity(single_ion::mag_ion, Blm::DataFrame, T::Real,
+function cef_heatcapacity(single_ion::mag_ion, Blm::DataFrame; T::Real=1.5,
                          units::String="SI")::Float64
-    # method: Blm DataFrame, all levels contribute
     _, cef_energies, _ = cef_eigensystem(single_ion, Blm)
     cef_energies .-= minimum(cef_energies)
     convfac = begin
@@ -303,10 +354,18 @@ function cef_heatcapacity(single_ion::mag_ion, Blm::DataFrame, T::Real,
 end
 
 
-function cef_heatcapacity_speclevels(single_ion::mag_ion, Blm::DataFrame,
-                                    T::Real, levels::UnitRange=1:4,
+"""
+    cef_heatcapacity_speclevels(single_ion::mag_ion, Blm::DataFrame; T::Real=1.5, levels::UnitRange=1:4, units::String="SI")::Float64
+
+Selecting which CEF excitations contribute to the specific heat capacity is
+supported in the `cef_heatcapacity_speclevels` function.
+
+Implementation of equation 9.25 of Furrer/Messot/Strässle.
+"""
+function cef_heatcapacity_speclevels(single_ion::mag_ion, Blm::DataFrame;
+                                    T::Real=1.5, levels::UnitRange=1:4,
                                     units::String="SI")::Float64
-    # method: Blm DataFrame only levels specified contribute (2J+1 levels total)
+    # only levels specified contribute (2J+1 levels total)
     _, cef_energies, _ = cef_eigensystem(single_ion, Blm)
     cef_energies .-= minimum(cef_energies)
     convfac = begin
