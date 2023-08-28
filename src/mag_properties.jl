@@ -6,6 +6,8 @@ Calculate magnetic properties given the Hamiltonian: H = H_CEF + H_Zeeman
 
 
 """
+    population_factor(Ep::Vector{Float64}, T::Real)::Vector{Float64}
+
 Calculate Boltzmann thermal occupation factors defined as
 np = e^(-Ep / kBT)/Z, for all eigenenergies Ep of a Hamiltonian
 the partition function is Z
@@ -15,6 +17,8 @@ population_factor(Ep::Vector{Float64}, T::Real)::Vector{Float64} =
 
 
 """
+    partition_function(Ep::Vector{Float64}, T::Real)::Float64
+
 Calculate the partition function given the eigenvalues of a Hamiltonian
 Z = sum_p e^(-Ep/kBT)
 """
@@ -23,6 +27,8 @@ partition_function(Ep::Vector{Float64}, T::Real)::Float64 =
 
 
 """
+    transition_matrix_element(; n::Vector{ComplexF64}, m::Vector{ComplexF64}, operator::Matrix{ComplexF64})::Float64
+
 Calculate <n|O|m>, where n and m are some eigenvectors of the Hamiltonian
 and O is a hetmitian operator
 """
@@ -36,6 +42,8 @@ end
 
 
 """
+    thermal_average(Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, operator::Matrix{ComplexF64}, T::Real)::Float64
+
 Calculate the thermal average of an operator O, <O> = sum_p <p|O|p>*np
 where |p> are the eigenstates of a Hamiltonian and np are the respective
 populations factors at finite temperature
@@ -53,14 +61,13 @@ end
 
 
 """
-Calculate the magnetization of a sample given the eigenstates and eigenvalues
-of the CEF+Zeeman Hamiltonian
+    calc_magnetization(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, J_alpha::Matrix{ComplexF64}, T::Real)::Float64
 
+Calculate the magnetization of a sample given the eigenstates and eigenvalues
+of the CEF+Zeeman Hamiltonian <J_alpha> = sum_p np <p| J_alpha |p>
 Implementation of equation (79) and (82) p.218-219 in
 Bauer, E., & Rotter, M. (2010).
 and equivalently equation 9.23 of Furrer/Messot/Strässle
-
-<J_alpha> = sum_p np <p| J_alpha |p>
 """
 function calc_magnetization(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
                            J_alpha::Matrix{ComplexF64}, T::Real)::Float64
@@ -175,6 +182,8 @@ end
 
 
 """
+    calc_susceptibility(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, J_alpha::Matrix{ComplexF64}, T::Real)::Float64
+
 Calculate the single-ion susceptibility of a system given
 the eigenstates and eigenvalues of the CEF+Zeeman Hamiltonian
 The result is from first-order perturbation theory
@@ -211,7 +220,6 @@ end
 
 """
     cef_susceptibility_crystal(single_ion::mag_ion, Blm::DataFrame; T::Real=1.5, Bext::Vector{<:Real}=zeros(3), units::String="SI")::Float64
-    cef_susceptibility_powder(single_ion::mag_ion, Blm::DataFrame; T::Real=1.5, Bext::Real=1.5, units::String="SI")::Float64
 
 Calculate the static susceptibility of a system given a CEF model
 and an applied magnetic field field.
@@ -219,10 +227,6 @@ Calculations are done for a fixed temperature.
 
 For calculation of the susceptibility for a single-crystal sample, `Bext` should
 be a vector that contains the value of the applied field in Tesla.
-
-For a polycrystal, the field should be inputted as a single scalar value in
-Tesla.
-The powder averaging is calculated as ``Chi_powder = norm(Chix^2+Chiy^2+Chiz^2)``.
 
 `units` can be either one of `SI`, `CGS` or `ATOMIC`. `ATOMIC` refers to the
 magnetization in units of Bohr's magneton.
@@ -264,20 +268,37 @@ function cef_susceptibility_crystal(single_ion::mag_ion, Blm::DataFrame;
 end
 
 
+"""
+    cef_susceptibility_powder(single_ion::mag_ion, Blm::DataFrame; T::Real=1.5, Bext::Real=1.5, units::String="SI")::Float64
+
+Calculate the static susceptibility of a system given a CEF model
+and an applied magnetic field field.
+Calculations are done for a fixed temperature.
+
+For a polycrystal, the field should be inputted as a single scalar value in
+Tesla.
+The powder averaging is calculated as ``Chi_powder = norm(Chix^2+Chiy^2+Chiz^2)``.
+
+`units` can be either one of `SI`, `CGS` or `ATOMIC`. `ATOMIC` refers to the
+magnetization in units of Bohr's magneton.
+
+Implementation of the diagonal elements of equation (2.1.18) p.76 in
+Jensen, J., & Mackintosh, A. R. (1991).
+Rare earth magnetism. Oxford: Clarendon Press.
+Equivalently, implementation of equation 9.24 of Furrer/Messot/Strässle
+"""
 function cef_susceptibility_powder(single_ion::mag_ion, Blm::DataFrame;
                                   T::Real=1.5, Bext::Real=0.0,
                                   units::String="SI")::Float64
     susceptibility_vector::Vector{Float64} = [
         cef_susceptibility_crystal(single_ion, Blm, T=T, Bext=[Bext,0,0], units=units),
         cef_susceptibility_crystal(single_ion, Blm, T=T, Bext=[0,Bext,0], units=units),
-        cef_susceptibility_crystal(single_ion, Blm, T=T, Bext=[0,0,Bext], units=units)
-       ]
+        cef_susceptibility_crystal(single_ion, Blm, T=T, Bext=[0,0,Bext], units=units)]
     norm(susceptibility_vector)
 end
 
 
 """
-    TODO: rewrite / optimize in view of updated cef_XXX_powder/crystal methods
     cef_susceptibility_multisite(sites::AbstractVector, T::Real, units::String="SI")::Union{Vector{Float64}, Float64}
 
 Calculate the magnetic susceptibility of a system consisting of several
@@ -316,6 +337,8 @@ end
 
 
 """
+    calc_heatcap(; Ep::Vector{Float64}, T::Real)::Float64
+
 Calculation of the Schottky contribution to the specific heat given the
 energy levels of a CEF model.
 Implementation of equation 9.25 of Furrer/Messot/Strässle

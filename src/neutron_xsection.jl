@@ -6,9 +6,11 @@ Calculate the neutron cross-section given the Hamiltonian H = H_CEF + H_Zeeman
 
 
 """
+    dipolar_form_factor(ion::mag_ion, Q::Real)::Float64
+
 Magnetic form factor in the dipolar approximation
 Implementation of equations (6.30) and (6.52) of Boothroyd
-Q is in units of reciprocal Angstrom
+`Q` is in units of reciprocal Angstrom
 """
 function dipolar_form_factor(ion::mag_ion, Q::Real)::Float64
     A_j0, a_j0, B_j0, b_j0, C_j0, c_j0, D_j0 = ion.ff_coeff_j0
@@ -21,6 +23,8 @@ end
 
 
 """
+    calc_S_alphabeta(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, R::Function, E::Float64, T::Float64, J_alpha::Matrix{ComplexF64}, J_beta::Matrix{ComplexF64})::Float64
+
 Simulation of the inelastic neutron scattering x-section.
 Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
 and eqn. (8.11) of Boothroyd
@@ -48,8 +52,6 @@ end
 
 """
     cef_neutronxsection_crystal(single_ion::mag_ion, Blm::DataFrame; E::Float64=0.0, Q::Vector{Real}=[0,0,0], T::Float64=2.0, Bext::Vector{<:Real}=[0,0,0], R::Function=TAS_resfunc)
-    cef_neutronxsection_powder(single_ion::mag_ion, Blm::DataFrame; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, Bext::Real=0, R::Function=TAS_resfunc)
-    cef_neutronxsection_multisite(sites::AbstractVector; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, R::Function=TAS_resfunc)
 
 Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
 Hamiltonian.
@@ -63,11 +65,8 @@ call signature:
 
 The form factor in the dipolar approximation is included in the calculation of
 the x-section.
-
 To calculate the INS spectrum of a single-crystal, Q must be a vector of reals
 in cartesian reciprocal lattice units.
-For a polycrystal Q is a single real number.
-
 Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
 and eqn. (8.11) of Boothroyd.
 """
@@ -99,6 +98,25 @@ function cef_neutronxsection_crystal(single_ion::mag_ion, Blm::DataFrame;
 end
 
 
+"""
+    cef_neutronxsection_powder(single_ion::mag_ion, Blm::DataFrame; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, Bext::Real=0, R::Function=TAS_resfunc)
+
+Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
+Hamiltonian.
+
+A custom resolution function is admitted and must have the following
+call signature:
+`resfunc(E, Epeak, width::Function(E))::Float64`
+`E` is is the energy where the intensity is being calculated,
+`Epeak` is is the energy of the actual CEF excitation and
+`width` is a function that returns the resolution (FWHM) evaluated at `E`.
+
+The form factor in the dipolar approximation is included in the calculation of
+the x-section.
+For a polycrystal Q is a single real number.
+Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
+and eqn. (8.11) of Boothroyd.
+"""
 function cef_neutronxsection_powder(single_ion::mag_ion, Blm::DataFrame;
                                    E::Real=0.0, Q::Real=0.0,
                                    T::Float64=2.0, Bext::Real=0.0,
@@ -121,6 +139,24 @@ function cef_neutronxsection_powder(single_ion::mag_ion, Blm::DataFrame;
 end
 
 
+"""
+    cef_neutronxsection_multisite(sites::AbstractVector; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, R::Function=TAS_resfunc)
+
+Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
+Hamiltonian.
+
+A custom resolution function is admitted and must have the following
+call signature:
+`resfunc(E, Epeak, width::Function(E))::Float64`
+`E` is is the energy where the intensity is being calculated,
+`Epeak` is is the energy of the actual CEF excitation and
+`width` is a function that returns the resolution (FWHM) evaluated at `E`.
+
+The form factor in the dipolar approximation is included in the calculation of
+the x-section.
+Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
+and eqn. (8.11) of Boothroyd.
+"""
 function cef_neutronxsection_multisite(sites::AbstractVector, E::Float64,
                                       Q::Float64, T::Float64=2.0,
                                       Bext::Float64=0.0, R::Function=TAS_resfunc
@@ -143,11 +179,11 @@ assumed to be Gaussian of variable width.
 """
 function TAS_resfunc(E::Float64, Epeak::Float64,
                     width::Function=x->0.03*x+0.09)::Float64
-    gauss(x=E, center=Epeak, amplitude=1.0, sigma=width(E))
+    gaussian(x=E, center=Epeak, amplitude=1.0, sigma=width(E))
 end
 
 
-gauss(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
+gaussian(; x::Real, amplitude::Real, center::Real, sigma::Real)::Float64 =
     amplitude * exp(-(x-center)^2 / (2*sigma^2)) / (sqrt(2pi) * sigma)
 
 
