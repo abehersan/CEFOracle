@@ -48,8 +48,11 @@ function rotation_invariance_eigenvalues()
     ion = single_ion("Ho3")
     bfactors = blm_dframe(Dict("B20"=>0.37737, "B22"=>3.9770, "B43"=>0.3121,
                                "B4m2"=>-0.1234, "B60"=>0.1312, "B6m6"=>-1.23e-2))
-    evals_0 = cef_eigensystem(ion, bfactors)[2]
+    evals_0 = cef_eigensystem(ion, bfactors)[2] # original eigenvalues
     for alpha in 0:0.05:2pi, beta in 0:0.05:pi
+        # calculate eigenvalues of system in rotated coordinate frame
+        # they should be the same as in the non-rotated system even if the
+        # B-factors are different
         @assert isapprox(cef_eigensystem(ion, rotate_blm(bfactors, alpha, beta, 0))[2], evals_0)
     end
     true
@@ -61,12 +64,3 @@ end
     @test wignerD_unitary()
     @test rotation_invariance_eigenvalues()
 end
-
-# test wigner d against tables from this paper
-# https://www.worldscientific.com/doi/epdf/10.1142/9789814415491_0005
-
-
-# test WignerD for some angles - easyspin
-
-
-# check that rotation of CEF hamiltonian leave eigenvalues invariant

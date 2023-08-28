@@ -7,21 +7,31 @@ determined by Euler angles alpha, beta and gamma
 
 
 """
-Original rotation routine in Hamiltonian definition
+    ZYZ_rotmatrix(alpha::Real, beta::Real, gamma::Real)::Matrix{Float64}
 
-    # The Zeeman Hamiltonian is included in the total Hamiltonian
-    # via the O1m operators
-    Blm_wf = copy(Blm)
-    B11 =-muB*Bx*gJ; B1m1 =-muB*By*gJ; B10 =-muB*Bz*gJ
-    Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  1), :Blm] .= B11
-    Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .== -1), :Blm] .= B1m1
-    Blm_wf[(Blm_wf.l .== 1) .& (Blm_wf.m .==  0), :Blm] .= B10
-    cef_matrix = H_cef(J, Blm_wf)
-    TODO: verify that the rotation of the CEF Hamiltonian is as
-    expected, i.e. that the expectation values of the operators
-    in the non-rotated frame are as you would expect...
-    Blm_rot = rotate_Blm(Blm_wf, alpha, beta, gamma)
+Rotation matrix for the proper Euler angles `alpha`, `beta` and `gamma` in radian
+for active rotations of vectors via `v_rot = M * v_ori` and matrices
+`m_rot = M * m_ori * transpose(M)`, where `M` is the rotation matrix.
 """
+function ZYZ_rotmatrix(alpha::Real, beta::Real, gamma::Real)::Matrix{Float64}
+    a, b, g = map(Float64, [alpha, beta, gamma])
+    Z_rot(a) * Y_rot(b) * Z_rot(g)
+end
+
+
+X_rot(theta::Float64)::Matrix{Float64} = [1 0 0;
+                                          0 cos(theta) -sin(theta);
+                                          0 sin(theta) cos(theta)]
+
+
+Y_rot(theta::Float64)::Matrix{Float64} = [cos(theta) 0 sin(theta);
+                                          0 1 0;
+                                          -sin(theta) 0 cos(theta)]
+
+
+Z_rot(theta::Float64)::Matrix{Float64} = [cos(theta) -sin(theta) 0;
+                                          sin(theta) cos(theta) 0;
+                                          0 0 1]
 
 
 """
@@ -126,9 +136,9 @@ function rotate_blm(Blm::DataFrame, alpha::Real, beta::Real, gamma::Real)::DataF
             end
         end
         # S * Blm where Blm is a (2l+1) vector
-        Blm_rot = S_matrix * Blm_ori
+        Blm_rot .= S_matrix * Blm_ori
         # @assert norm(imag(Blm_rot)) < 1e-12
-        Blm_res = real(Blm_rot)
+        Blm_res .= real(Blm_rot)
         append!(Blm_rotated,
                 DataFrame("Blm"=>Blm_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
     end
@@ -138,8 +148,9 @@ end
 
 function rotate_stevens(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
     rot_mat = zeros(ComplexF64, (2l+1, 2l+1))
-    rot_mat = transpose(inv(Alm_matrix(l))) * wigner_D(l, alpha, beta, gamma)' *
+    rot_mat .= transpose(inv(Alm_matrix(l))) * wigner_D(l, alpha, beta, gamma)' *
               transpose(Alm_matrix(l))
+    rot_mat
 end
 
 

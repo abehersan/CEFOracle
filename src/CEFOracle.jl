@@ -41,7 +41,7 @@ export stevens_O
 
 
 include("./cef_rot.jl")
-export rotate_blm, get_euler_angles
+export rotate_blm, get_euler_angles, ZYZ_rotmatrix
 
 # include("./cef_fit.jl")
 # export cef_datasets, chi2_cef
