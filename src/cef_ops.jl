@@ -6,10 +6,12 @@ Explicit reference tables for CF operators
 
 
 """
-Stevens operators as given in
-http://www.mcphase.de/manual5_5/node131.html
+    stevens_O(J::Number, l::Int, m::Int)::Matrix{ComplexF64}
+
+Stevens operators as given in http://www.mcphase.de/manual5_5/node131.html
+as a function of `l` and `m` for a given `J`
 """
-function stevens_O(J::Number, l::Int, m::Int)
+function stevens_O(J::Number, l::Int, m::Int)::Matrix{ComplexF64}
     # Stevens operators O_l,m, with l = 2, 4, 6
     m_dim = Int(2*J+1)
     Jz = spin_operators(J, "z")
