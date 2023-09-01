@@ -1,5 +1,7 @@
 # CEFOracle
 
+[![Wiki](https://img.shields.io/badge/wiki-CEFOracle-purple)](https://github.com/abehersan/CEFOracle/wiki)
+
 `CEFOracle` is a Julia module inteded to model and analyze the single-ion
 properties of $4f$ electron magnetic insulators.
 The crystal electric field (CEF) Hamiltonian for a tripositive rare-earth
