@@ -1,6 +1,6 @@
 name = "CEFOracle"
 uuid = "7655a298-6d8b-4012-860e-cc9e21b0a61d"
-authors = ["Abe Hernández"]
+authors = ["J. A. Hernández"]
 version = "0.9.5"
 
 [deps]

@@ -18,7 +18,7 @@ bdf_B = blm_dframe(bs_modelB)
 calculate the inelastic neutron scattering x-section at different temperatures
 with model A, reproduces figure 7 of the paper
 """
-es = LinRange(-12, 12, 150)
+es = LinRange(-12, 12, 700)
 temps = [10.0, 50.0, 200.0]
 ins_plot = plot(xlabel="Energy [meV]", ylabel="I(Q, E) [arb. units]")
 for t in temps

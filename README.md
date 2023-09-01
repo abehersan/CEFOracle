@@ -1,24 +1,26 @@
 # CEFOracle
 
 `CEFOracle` is a Julia module inteded to model and analyze the single-ion
-properties of $4f$ electron systems in a systematic way.
-The crystalline-electric field (CEF) at the position of the magnetic ion in a
-solid is modelled in the Stevens formalism and a full CEF matrix is constructed.
+properties of $4f$ electron magnetic insulators.
+The crystal electric field (CEF) Hamiltonian for a tripositive rare-earth
+magnetic ion in a solid is modelled in the Stevens formalism and a full CEF
+matrix is constructed.
 
-The full CEF matrix is diagonalized and with it, physical properties of the
-single-ion system can be calculated and compared to experimental results.
-The effect of an external magnetic field can also be taken into account 
-when calculating physical observables.
+The full CEF matrix is diagonalized and physical observables can be calculated
+using the resulting characteristic energies and wavefunctions.
+This calculation can be compared to experimental results.
+The effect of an external magnetic field can also be taken into account in the
+calculation.
 
 The static magnetic susceptibility, the magnetization, magnetic moment,
 specific heat capacity and inelastic neutron scattering cross-sections can
-be calculated by `CEFOracle` given a CEF model for both polycrystalline and
-single-crystal samples.
+be calculated by `CEFOracle` given a CEF Hamiltonian for both polycrystalline
+and single-crystal samples.
 
 The single-ion Hamiltonian treated in `CEFOracle` is the following:
 
 ```math
-\hat{\mathcal{H}} = \sum_{l, m}B^m_l\hat{O}^m_l(J) - g_{J}\mu_{\rm{B}}\boldsymbol{B}\cdot\hat{\boldsymbol{J}}(J),
+\hat{\mathcal{H}} = \sum_{l=2,4,6}\sum_{m=-l}^{l} B^m_l\hat{O}^m_l(J) - g_{J}\mu_{\rm{B}}\boldsymbol{B}\cdot\hat{\boldsymbol{I}}(J),
 ```
 
 where $\hat{O}^m_l(J)$ are the extended Stevens operators (ESOs). Values of
@@ -27,7 +29,7 @@ studies of real materials. The ESOs are given as a function of the total angular
 momentum quantum number $J$, see Ryabov (1999) and Rudowicz (2015).
 
 The Hamiltonian is given as a function of the  total-angular momentum matrices
-$\hat{J}_x, \hat{J}_y, \hat{J}_z$.
+$\hat{I}_x, \hat{I}_y, \hat{I}_z$.
 And possibly an external magnetic field $\boldsymbol{B}=(B_x, B_y, B_z)$
 with components in units of Tesla.
 
