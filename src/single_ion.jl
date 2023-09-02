@@ -109,14 +109,14 @@ function single_ion(ion::String)
         @warn warn_mess
     end
     try
-        J, gJ,
+        J, g,
         alpha, beta, gamma,
         r2, r4, r6,
         A_j0, a_j0, B_j0, b_j0, C_j0, c_j0, D_j0,
         A_j2, a_j2, B_j2, b_j2, C_j2, c_j2, D_j2 =
             mag_ground_state[ion]
         return mag_ion(
-            ion, J, gJ,
+            ion, J, g,
             [alpha, beta, gamma],
             [r2, r4, r6],
             [A_j0, a_j0, B_j0, b_j0, C_j0, c_j0, D_j0],
@@ -137,7 +137,7 @@ end
 Base.@kwdef mutable struct mag_ion
     ion::String
     J::Float64
-    gJ::Float64
+    g::Float64
     stevens_factors::Vector{Float64}
     rad_wavefunction::Vector{Float64}
     ff_coeff_j0::Vector{Float64}

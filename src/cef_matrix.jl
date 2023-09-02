@@ -22,7 +22,7 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame;
                         Bext::Vector{<:Real}=zeros(3), verbose=false
                         )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = single_ion.J
-    gJ = single_ion.gJ
+    g = single_ion.g
     m_dim = Int(2.0*J+1.0)
     cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
     cef_energies = zeros(Float64, (m_dim, m_dim))
@@ -30,7 +30,7 @@ function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame;
     if isequal(zeros(Real, 3), Bext)
         cef_matrix = H_cef(J, Blm)
     else
-        cef_matrix = H_cef(J, Blm) + H_zeeman(J, gJ, Bext)
+        cef_matrix = H_cef(J, Blm) + H_zeeman(J, g, Bext)
     end
     # @assert is_hermitian(cef_matrix)
     cef_wavefunctions = eigvecs(cef_matrix)
@@ -114,37 +114,60 @@ end
 
 
 """
-Compute the full CEF matrix given a set of Blm parameters
+    H_cef(J::Float64, Blm::DataFrame)::Matrix{ComplexF64}
+
+Compute the full CEF matrix given a set of Blm parameters `Blm` and a
+total angular momentum `J`
 """
 function H_cef(J::Float64, Blm::DataFrame)::Matrix{ComplexF64}
     m_dim = Int(2*J+1)
     cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
     for row in eachrow(Blm)
-        cef_matrix += row.Blm * stevens_EO(J, row.l, row.m)
+        cef_matrix = row.Blm * stevens_EO(J, row.l, row.m)
     end
     cef_matrix
 end
 
 
 """
-Zeeman Hamiltonian given a spin magnitude, an effective and isotropic
-g-factor and a vector containing the applied magnetic field in Tesla
+    H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})::Matrix{ComplexF64}
 
-TODO: define a function method that allows for g to be a tensor, specifically
-a diagonal tensor in the case the system is aligned in the eigenframe of the
-g-tensor, i.e. g = [gxx, gyy, gzz]
+Zeeman Hamiltonian given a total angular momentum quantum number `J`,
+an effective and isotropic g-factor `g` and a vector containing the applied
+magnetic field in Tesla `external_field`.
 """
-function H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})
-    Jx = spin_operators(J, "x")
-    Jy = spin_operators(J, "y")
-    Jz = spin_operators(J, "z")
-    Bx, By, Bz = - 1.0 * g * muB * external_field
-    sum([Bx*Jx, By*Jy, Bz*Jz])
+function H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})::Matrix{ComplexF64}
+    Bx, By, Bz = external_field
+    BxJx = spin_operators(J, "x") * Bx
+    ByJy = spin_operators(J, "y") * By
+    BzJz = spin_operators(J, "z") * Bz
+    (-1.0 * g * muB) * (BxJx + ByJy + BzJz)
 end
 
 
 """
-Explicit matrix form of the spin operators for arbitrary spin J
+    H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})
+
+Zeeman Hamiltonian given a total angular momentum quantum number `J`,
+a vector with the componentes of the g-tensor in the eigenframe of the system
+`g=[gxx, gyy, gzz]` and a vector containing the applied magnetic field in
+Tesla `external_field`.
+"""
+function H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})
+    Bx, By, Bz = external_field
+    gxx, gyy, gzz = g
+    gxxBxJx = spin_operators(J, "x") + gxx + Bx
+    gyyByJy = spin_operators(J, "y") + gyy + By
+    gzzBzJz = spin_operators(J, "z") + gzz + Bz
+    (-1.0 * muB) * (gxxBxJx + gyyByJy + gzzBzJz)
+end
+
+
+"""
+    spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
+
+Explicit matrix form of the spin operators for arbitrary total angular momentum
+quantum number `J`
 """
 function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
     m_dim = Int(2*J+1)
@@ -187,7 +210,10 @@ end
 
 
 """
-Coefficients clm of formula (8) of Ryabov (2009)
+    ryabov_clm(l::Int, m::Int)::Float64
+
+Coefficients `clm` of formula (8) of Ryabov (2009)
+
 The Racah operators Otilde are related to the spherical tensors T^l_m via
     Otilde^l_pm m = (pm 1)^(m) clm T^l_pm m,
 This function calculates clm given equations (2), (4) and the fact that
@@ -243,6 +269,8 @@ end
 
 
 """
+    stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
+
 Calculate the explicit matrix form of the Stevens operator O^m_l
 Implementation of equation (21) of Ryabov (1999).
 """
