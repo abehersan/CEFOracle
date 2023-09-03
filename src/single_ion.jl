@@ -11,8 +11,8 @@ Define single-ion properties such as J, gJ and stevens multiplicative factors
 Given a magnetic ion name, generate a `mag_ion` structure that contains
 the following data:
 
-- Total angular momentum quantum number J, Landé-factor gJ
-- Stevens' geometric factors theta_l, alpha, beta, gamma
+- Total angular momentum quantum number J, isotropic Landé-factor gJ
+- Stevens geometric factors theta_l, alpha, beta, gamma
 - Expectation value of radial wave functions <r^l>, r2, r4, r6
 - Dipolar magnetic form factor coefficients
 
@@ -137,7 +137,7 @@ end
 Base.@kwdef mutable struct mag_ion
     ion::String
     J::Float64
-    g::Float64
+    g::Union{Vector{<:Real}, Real}
     stevens_factors::Vector{Float64}
     rad_wavefunction::Vector{Float64}
     ff_coeff_j0::Vector{Float64}

@@ -18,11 +18,14 @@ export meV_per_K, mu0, muB, kB, NA, R
 
 
 include("./utils.jl")
-export effective_moment, blm_dframe, stevens_A
+export effective_moment
+export blm_dframe, alm_dframe
+export get_blm!, get_alm!
 
 
 include("./cef_matrix.jl")
-export cef_eigensystem, cef_eigensystem_multisite, cef_site
+export cef_eigensystem, spin_operators
+export cef_eigensystem_multisite, cef_site
 
 
 include("./mag_properties.jl")

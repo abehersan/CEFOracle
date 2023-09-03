@@ -8,39 +8,32 @@ Hamiltonian -> H = H_CEF + H_Zeeman
 
 
 """
-    cef_eigensystem(single_ion::mag_ion, Blm::DataFrame; Bext::Vector{<:Real}=zeros(3), verbose=false)
+    cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame; applied_field::Vector{<:Real}=zeros(3), verbose=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
 
-Returns a 3-tuple that contains the full Hamiltonian matrix,
-H = H_CEF + H_Zeeman,
-its eigenvalues and eigenvectors.
+Returns a 3-tuple that contains the full Hamiltonian matrix, its eigenvalues and eigenvectors.
 
-`Bext = [Bx, By, Bz]` are the values of the applied magnetic field defined in
-units of Tesla. In addition, the xyz coordinate system is assumed to be
-parallel to the abc crystal coordinates, in which the CEF matrix is defined.
+`applied_field = [Bx, By, Bz]` are the values of the applied magnetic field defined in
+units of Tesla.
 """
-function cef_eigensystem(single_ion::mag_ion, Blm::DataFrame;
-                        Bext::Vector{<:Real}=zeros(3), verbose=false
+function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
+                        applied_field::Vector{<:Real}=zeros(3), verbose=false
                         )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = single_ion.J
     g = single_ion.g
-    m_dim = Int(2.0*J+1.0)
-    cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
-    cef_energies = zeros(Float64, (m_dim, m_dim))
-    cef_wavefunctions = zeros(ComplexF64, (m_dim, m_dim))
-    if isequal(zeros(Real, 3), Bext)
-        cef_matrix = H_cef(J, Blm)
+    if iszero(applied_field)
+        cef_matrix = H_cef(J, bfactors)
     else
-        cef_matrix = H_cef(J, Blm) + H_zeeman(J, g, Bext)
+        cef_matrix = H_cef(J, bfactors) + H_zeeman(J, g, applied_field)
     end
-    # @assert is_hermitian(cef_matrix)
+    # @assert is_hermitian(cef_matrix) # disabled for performance
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
     if verbose
         println("---CEF matrix diagonalization results---")
         println("External field in [Tesla]")
-        println("[Bx, By, Bz] = $Bext")
+        println("[Bx, By, Bz] = $applied_field")
         println("CEF parameters in [meV]:")
-        display(Blm)
+        display(bfactors)
         println("CEF matrix, basis vectors |J, -MJ>, ... |J, MJ>")
         display(sparse(cef_matrix))
         println("CEF-split single-ion energy levels in [meV]:")
@@ -51,31 +44,20 @@ end
 
 
 """
-    cef_eigensystem_multisite(sites::Vector{NamedTuple}; verbose::Bool=False)
+    cef_eigensystem_multisite(sites::AbstractVector; verbose=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
 
-Calculate and diagonalize the CEF matrix for multiple inequivalent CEF
-environments.
-
-The input is expected to be a `Vector` (list) of `NamedTuple`.
-
-Every named tuple has to include a `single_ion` key with a `mag_ion` value,
-a `Blm` key should contain a `DataFrame` as a value with the CEF parameters
-of the environment and optionally `Bx`, `By` and `Bz`
-should specify an applied magnetic field in units of Tesla.
+Calculate and diagonalize the CEF matrix for multiple inequivalent CEF environments.
+`sites` is a vector of `cef_site` structs.
 
 Limitation: all sites must host the same magnetic ion species.
 """
-function cef_eigensystem_multisite(sites::AbstractVector; verbose=false
-            )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
+function cef_eigensystem_multisite(sites::AbstractVector; verbose=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = sites[1].single_ion.J # only multisites of the same ion are supported
     m_dim = Int(2*J+1)
     cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
-    cef_energies = zeros(Float64, (m_dim, m_dim))
-    cef_wavefunctions = zeros(ComplexF64, (m_dim, m_dim))
     for site in sites
-        cef_matrix += cef_eigensystem(site.single_ion, site.Blm,
-                                      Bext=site.Bext, verbose=false)[1] *
-                                      site.site_ratio
+        cef_matrix += (H_cef(site.J, site.bfactors) +
+                       H_zeeman(site.J, site.g, site.applied_field)) * site.site_ratio
     end
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
@@ -83,7 +65,7 @@ function cef_eigensystem_multisite(sites::AbstractVector; verbose=false
         println("---Multisite CEF matrix diagonalization results---")
         for (i, site) in enumerate(sites)
             println("External field in Tesla for site #$i")
-            println("[Bx, By, Bz] = $(site.Bext)")
+            println("[Bx, By, Bz] = $(site.applied_field)")
         end
         println("CEF matrix, basis vectors are |J, -MJ>, ... |J, MJ>")
         display(cef_matrix)
@@ -95,35 +77,35 @@ end
 
 
 """
-    cef_site(single_ion::mag_ion, Blm::DataFrame, site_ratio::Real=1.0, Bext::Union{Vector{<:Real}, Real}=[0,0,0])
+    cef_site(single_ion::mag_ion, bfactors::DataFrame, site_ratio::Real=1.0, applied_field::Union{Vector{<:Real}, Real}=[0,0,0])
 
 Define a `cef_site` for a magnetic ion in an environment where multiple ions
 have different site-symmetries.
 
 `site_ratio` of all considered sites must add to one.
 
-`Bext` can either be a vector (mostly for single-crystal sample calculations),
+`applied_field` can either be a vector (mostly for single-crystal sample calculations),
 or a real number (used for polycrystals).
 """
 Base.@kwdef mutable struct cef_site
-    single_ion  ::mag_ion
-    Blm         ::DataFrame
-    site_ratio  ::Real = 1.0
-    Bext        ::Union{Vector{<:Real}, Real} = [0,0,0]
+    single_ion::mag_ion
+    bfactors::DataFrame
+    site_ratio::Real = 1.0
+    applied_field::Union{Vector{<:Real}, Real} = [0,0,0]
 end
 
 
 """
-    H_cef(J::Float64, Blm::DataFrame)::Matrix{ComplexF64}
+    H_cef(J::Float64, bfactors::DataFrame)::Matrix{ComplexF64}
 
-Compute the full CEF matrix given a set of Blm parameters `Blm` and a
+Compute the full CEF matrix given a set of CEF parameters `bfactors` and a
 total angular momentum `J`
 """
-function H_cef(J::Float64, Blm::DataFrame)::Matrix{ComplexF64}
+function H_cef(J::Float64, bfactors::DataFrame)::Matrix{ComplexF64}
     m_dim = Int(2*J+1)
     cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
-    for row in eachrow(Blm)
-        cef_matrix = row.Blm * stevens_EO(J, row.l, row.m)
+    for row in eachrow(bfactors)
+        cef_matrix += row.Blm * stevens_EO(J, row.l, row.m)
     end
     cef_matrix
 end
@@ -136,7 +118,7 @@ Zeeman Hamiltonian given a total angular momentum quantum number `J`,
 an effective and isotropic g-factor `g` and a vector containing the applied
 magnetic field in Tesla `external_field`.
 """
-function H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})::Matrix{ComplexF64}
+function H_zeeman(J::Float64, g::Float64, external_field::Vector{Float64})::Matrix{ComplexF64}
     Bx, By, Bz = external_field
     BxJx = spin_operators(J, "x") * Bx
     ByJy = spin_operators(J, "y") * By
@@ -150,15 +132,15 @@ end
 
 Zeeman Hamiltonian given a total angular momentum quantum number `J`,
 a vector with the componentes of the g-tensor in the eigenframe of the system
-`g=[gxx, gyy, gzz]` and a vector containing the applied magnetic field in
+`g = [gxx, gyy, gzz]` and a vector containing the applied magnetic field in
 Tesla `external_field`.
 """
 function H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})
     Bx, By, Bz = external_field
     gxx, gyy, gzz = g
-    gxxBxJx = spin_operators(J, "x") + gxx + Bx
-    gyyByJy = spin_operators(J, "y") + gyy + By
-    gzzBzJz = spin_operators(J, "z") + gzz + Bz
+    gxxBxJx = spin_operators(J, "x") * (gxx * Bx)
+    gyyByJy = spin_operators(J, "y") * (gyy * By)
+    gzzBzJz = spin_operators(J, "z") * (gzz * Bz)
     (-1.0 * muB) * (gxxBxJx + gyyByJy + gzzBzJz)
 end
 
@@ -170,41 +152,31 @@ Explicit matrix form of the spin operators for arbitrary total angular momentum
 quantum number `J`
 """
 function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
-    m_dim = Int(2*J+1)
     if isequal(a, "x")
         mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
-        Jp = zeros(ComplexF64, (m_dim, m_dim))
-        Jm = zeros(ComplexF64, (m_dim, m_dim))
-        Jx = zeros(ComplexF64, (m_dim, m_dim))
-        Jp .= diagm(1=>jp_eigval[1:end-1])
-        Jm .= diagm(-1=>jm_eigval[2:end])
-        Jx .= (Jp + Jm)/2.0
+        Jp = diagm(1=>jp_eigval[1:end-1])
+        Jm = diagm(-1=>jm_eigval[2:end])
+        Jx = (Jp + Jm)/2.0
     elseif isequal(a, "y")
         mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
-        Jp = zeros(ComplexF64, (m_dim, m_dim))
-        Jm = zeros(ComplexF64, (m_dim, m_dim))
-        Jy = zeros(ComplexF64, (m_dim, m_dim))
-        Jp .= diagm(1=>jp_eigval[1:end-1])
-        Jm .= diagm(-1=>jm_eigval[2:end])
-        Jy .= (Jp - Jm)/2.0im
+        Jp = diagm(1=>jp_eigval[1:end-1])
+        Jm = diagm(-1=>jm_eigval[2:end])
+        Jy = (Jp - Jm)/2.0im
     elseif isequal(a, "z")
         mJ = -J:1:J
-        Jz = zeros(ComplexF64, (m_dim, m_dim))
-        Jz .= diagm(mJ)
+        Jz = diagm(mJ)
     elseif isequal(a, "+")
         mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
-        Jp = zeros(ComplexF64, (m_dim, m_dim))
-        Jp .= diagm(1=>jp_eigval[1:end-1])
+        Jp = diagm(1=>jp_eigval[1:end-1])
     elseif isequal(a, "-")
         mJ = -J:1:J
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
-        Jm = zeros(ComplexF64, (m_dim, m_dim))
-        Jm .= diagm(-1=>jm_eigval[2:end])
+        Jm = diagm(-1=>jm_eigval[2:end])
     end
 end
 
@@ -256,15 +228,7 @@ function ryabov_clm(l::Int, m::Int)::Float64
             alpha = 1.0
         end
     end
-    clm = alpha/(Flm) # Ryabov (1999) Eq.(22) without Nlm, not necessary
-
-    # Nll = ((-1)^l * sqrt(factorial(2l)))/(2^l * factorial(l))
-    # Nlm = (-1)^(l-m) * Nll*sqrt(factorial(l+m)/(factorial(l-m)*factorial(2l)))
-    # clm = alpha/(Nlm*Flm) # Ryabov (1999) Eq.(22)
-    # check against table 1 of Ryabov (1999)
-    # println("Nlm/Nll: :$(Nlm/Nll)")
-    # println("Flm: $Flm")
-    # println("clm: $clm")
+    clm = alpha/(Flm) # Ryabov (1999) Eq.(22) with Nlm set to 1
 end
 
 
@@ -278,7 +242,7 @@ function stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
     Jp = spin_operators(J, "+")
     Jm = spin_operators(J, "-")
     T = Jp^l # T^l_l
-    for qq = l-1:-1:abs(m) # Eqn (1 and 2) of Ryabov (1999), see Stoll EasySpin
+    for qq in l-1:-1:abs(m) # Eqn (1 and 2) of Ryabov (1999), see Stoll EasySpin
         T = Jm*T - T*Jm
     end
     # Construction of cosine and sine tesseral operators, Ryabov, Eq.(21)

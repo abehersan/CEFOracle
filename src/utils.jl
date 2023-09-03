@@ -12,12 +12,13 @@ Calculate the effective magnetic moment in units of Bohr's magneton via
 ``mu_{eff}/mu_{B} = sqrt(J(J+1))``
 """
 function effective_moment(single_ion::mag_ion)::Float64
-    gJ = single_ion.gJ; J = single_ion.J;
-    gJ * sqrt(J*(J+1.0))
+    g = single_ion.g
+    J = single_ion.J
+    g * sqrt(J*(J+1.0))
 end
 
 
-function norm_Blm(blm::DataFrame)::Float64
+function norm_bfactors(blm::DataFrame)::Float64
     norm(blm[!, :Blm], 2)
 end
 
@@ -47,7 +48,8 @@ end
 
 
 function is_unitary(A::Matrix{<:Number})::Bool
-    isapprox(A * A', I, atol=1e-12) && isapprox(A' * A, I, atol=1e-12) &&
+    isapprox(A * A', I, atol=1e-12) &&
+    isapprox(A' * A, I, atol=1e-12) &&
     isapprox(det(A).re, 1.0)
 end
 
@@ -73,9 +75,15 @@ function blm_dframe(blm_dict::Dict{String, <:Real})::DataFrame
 end
 
 
-function alm_dframe(blm_dict::Dict{String, <:Real})::DataFrame
-    l, m = parse_blm(collect(keys(blm_dict)))
-    bs = collect(values(blm_dict))
+"""
+    alm_dframe(Blm_dict::Dict{String, <:Real})::DataFrame
+
+Given a dictionary of Stevens coefficients of the form Alm -> Value, return
+a DataFrame with equivalent information.
+"""
+function alm_dframe(alm_dict::Dict{String, <:Real})::DataFrame
+    l, m = parse_blm(collect(keys(alm_dict)))
+    bs = collect(values(alm_dict))
     DataFrame("Alm"=>bs, "l"=>l, "m"=>m)
 end
 
@@ -125,8 +133,7 @@ end
 
 
 """
-    stevens_A(single_ion::mag_ion, blm::Dict{String, Float64})::DataFrame
-    stevens_A(single_ion::mag_ion, blm::DataFrame)::DataFrame
+    get_alm!(single_ion::mag_ion, bfactors::DataFrame)::DataFrame
 
 Factorization of the Stevens B_lm parameters defined as
 B_lm = A_lm * <r^l> * theta_l,
@@ -136,45 +143,55 @@ where <r^l> is the expectation value of the radial wavefunction of the
 
 A_lm are extracted by simple division.
 """
-function stevens_A(single_ion::mag_ion, blm::Dict{String, Float64})::DataFrame
+function get_alm!(single_ion::mag_ion, bfactors::DataFrame)::DataFrame
+    # Alm = copy(bfactors)
+    # rename!(Alm, :Blm=>:Alm)
     alpha, beta, gamma = single_ion.stevens_factors
     r2, r4, r6 = single_ion.rad_wavefunction
-    stevens_A = Dict{String, Float64}()
-    for (key, value) in stevens_B
-        new_key = "A" * key[2:end]
-        l, m = parse_blm(key)
-        if l == 2
-            new_value = value / (alpha * r2)
-        elseif l == 4
-            new_value = value / (beta * r4)
-        elseif l == 6
-            new_value = value / (gamma * r6)
+    alm = zeros(Float64, nrow(bfactors))
+    for (i, r) in enumerate(eachrow(bfactors))
+        if r.l == 2
+            alm[i] = r.Blm / (alpha * r2)
+        elseif r.l == 4
+            alm[i] = r.Blm / (beta * r4)
+        elseif r.l == 6
+            alm[i] = r.Blm / (gamma * r6)
         else
-            new_value = value
             err_message =
             "Given BLM parameter has invalid L and/or M.\n"*
             "$l and $m were parsed and are not supported.\n"*
             "Writing unscaled Stevens parameter."
             @error err_message
         end
-        stevens_A[new_key] = new_value
     end
-    return alm_dframe(stevens_A)
+    bfactors[!, :Alm] = alm
+    bfactors
 end
 
 
-function stevens_A(single_ion::mag_ion, blm::DataFrame)::DataFrame
-    Alm = copy(blm)
-    rename!(Alm, :Blm=>:Alm)
+"""
+    get_blm!(single_ion::mag_ion, afactors::DataFrame)::DataFrame
+
+Calculate the stevens Blm parameters defined as B_lm = A_lm * <r^l> * theta_l,
+where <r^l> is the expectation value of the radial wavefunction of the
+4f electron density (tabulated) and theta_l are the Stevens factors
+(calculated via the Wigner-Eckhart theorem).
+
+Blm are calculated by simple multiplication
+"""
+function get_blm!(single_ion::mag_ion, afactors::DataFrame)::DataFrame
+    # Alm = copy(bfactors)
+    # rename!(Alm, :Blm=>:Alm)
     alpha, beta, gamma = single_ion.stevens_factors
     r2, r4, r6 = single_ion.rad_wavefunction
-    for r in eachrow(Alm)
+    blm = zeros(Float64, nrow(afactors))
+    for (i, r) in enumerate(eachrow(afactors))
         if r.l == 2
-            r.Alm *= 1.0 / (alpha * r2)
+            blm[i] = r.Alm * (alpha * r2)
         elseif r.l == 4
-            r.Alm *= 1.0 / (beta * r4)
+            blm[i] = r.Alm * (beta * r4)
         elseif r.l == 6
-            r.Alm *= 1.0 / (gamma * r6)
+            blm[i] = r.Alm * (gamma * r6)
         else
             err_message =
             "Given BLM parameter has invalid L and/or M.\n"*
@@ -183,5 +200,6 @@ function stevens_A(single_ion::mag_ion, blm::DataFrame)::DataFrame
             @error err_message
         end
     end
-    Alm
+    afactors[!, :Blm] = blm
+    afactors
 end
