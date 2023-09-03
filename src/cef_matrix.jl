@@ -8,22 +8,22 @@ Hamiltonian -> H = H_CEF + H_Zeeman
 
 
 """
-    cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame; applied_field::Vector{<:Real}=zeros(3), verbose=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
+    cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(3), verbose=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
 
 Returns a 3-tuple that contains the full Hamiltonian matrix, its eigenvalues and eigenvectors.
 
-`applied_field = [Bx, By, Bz]` are the values of the applied magnetic field defined in
+`B = [Bx, By, Bz]` are the values of the applied magnetic field defined in
 units of Tesla.
 """
 function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
-                        applied_field::Vector{<:Real}=zeros(3), verbose=false
+                        B::Vector{<:Real}=zeros(3), verbose=false
                         )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = single_ion.J
     g = single_ion.g
-    if iszero(applied_field)
+    if iszero(B)
         cef_matrix = H_cef(J, bfactors)
     else
-        cef_matrix = H_cef(J, bfactors) + H_zeeman(J, g, applied_field)
+        cef_matrix = H_cef(J, bfactors) + H_zeeman(J, g, B)
     end
     # @assert is_hermitian(cef_matrix) # disabled for performance
     cef_wavefunctions = eigvecs(cef_matrix)
@@ -31,7 +31,7 @@ function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
     if verbose
         println("---CEF matrix diagonalization results---")
         println("External field in [Tesla]")
-        println("[Bx, By, Bz] = $applied_field")
+        println("[Bx, By, Bz] = $B")
         println("CEF parameters in [meV]:")
         display(bfactors)
         println("CEF matrix, basis vectors |J, -MJ>, ... |J, MJ>")
@@ -57,7 +57,7 @@ function cef_eigensystem_multisite(sites::AbstractVector; verbose=false)::Tuple{
     cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
     for site in sites
         cef_matrix += (H_cef(site.J, site.bfactors) +
-                       H_zeeman(site.J, site.g, site.applied_field)) * site.site_ratio
+                       H_zeeman(site.J, site.g, site.B)) * site.site_ratio
     end
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
@@ -65,7 +65,7 @@ function cef_eigensystem_multisite(sites::AbstractVector; verbose=false)::Tuple{
         println("---Multisite CEF matrix diagonalization results---")
         for (i, site) in enumerate(sites)
             println("External field in Tesla for site #$i")
-            println("[Bx, By, Bz] = $(site.applied_field)")
+            println("[Bx, By, Bz] = $(site.B)")
         end
         println("CEF matrix, basis vectors are |J, -MJ>, ... |J, MJ>")
         display(cef_matrix)
@@ -77,21 +77,21 @@ end
 
 
 """
-    cef_site(single_ion::mag_ion, bfactors::DataFrame, site_ratio::Real=1.0, applied_field::Union{Vector{<:Real}, Real}=[0,0,0])
+    cef_site(single_ion::mag_ion, bfactors::DataFrame, site_ratio::Real=1.0, B::Union{Vector{<:Real}, Real}=[0,0,0])
 
 Define a `cef_site` for a magnetic ion in an environment where multiple ions
 have different site-symmetries.
 
 `site_ratio` of all considered sites must add to one.
 
-`applied_field` can either be a vector (mostly for single-crystal sample calculations),
+`B` can either be a vector (mostly for single-crystal sample calculations),
 or a real number (used for polycrystals).
 """
 Base.@kwdef mutable struct cef_site
     single_ion::mag_ion
     bfactors::DataFrame
     site_ratio::Real = 1.0
-    applied_field::Union{Vector{<:Real}, Real} = [0,0,0]
+    B::Union{Vector{<:Real}, Real} = [0,0,0]
 end
 
 
@@ -229,6 +229,7 @@ function ryabov_clm(l::Int, m::Int)::Float64
         end
     end
     clm = alpha/(Flm) # Ryabov (1999) Eq.(22) with Nlm set to 1
+    clm
 end
 
 
