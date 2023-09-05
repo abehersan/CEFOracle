@@ -16,7 +16,7 @@ Returns a 3-tuple that contains the full Hamiltonian matrix, its eigenvalues and
 units of Tesla.
 """
 function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
-                        B::Vector{<:Real}=zeros(3), verbose=false
+                        B::Vector{<:Real}=zeros(3), verbose::Bool=false
                         )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = single_ion.J
     g = single_ion.g
@@ -51,7 +51,7 @@ Calculate and diagonalize the CEF matrix for multiple inequivalent CEF environme
 
 Limitation: all sites must host the same magnetic ion species.
 """
-function cef_eigensystem_multisite(sites::AbstractVector; verbose=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
+function cef_eigensystem_multisite(sites::AbstractVector; verbose::Bool=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
     J = sites[1].single_ion.J # only multisites of the same ion are supported
     m_dim = Int(2*J+1)
     cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
@@ -118,7 +118,7 @@ Zeeman Hamiltonian given a total angular momentum quantum number `J`,
 an effective and isotropic g-factor `g` and a vector containing the applied
 magnetic field in Tesla `external_field`.
 """
-function H_zeeman(J::Float64, g::Float64, external_field::Vector{Float64})::Matrix{ComplexF64}
+function H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})::Matrix{ComplexF64}
     Bx, By, Bz = external_field
     BxJx = spin_operators(J, "x") * Bx
     ByJy = spin_operators(J, "y") * By
@@ -135,7 +135,7 @@ a vector with the componentes of the g-tensor in the eigenframe of the system
 `g = [gxx, gyy, gzz]` and a vector containing the applied magnetic field in
 Tesla `external_field`.
 """
-function H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})
+function H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})::Matrix{ComplexF64}
     Bx, By, Bz = external_field
     gxx, gyy, gzz = g
     gxxBxJx = spin_operators(J, "x") * (gxx * Bx)
@@ -152,29 +152,25 @@ Explicit matrix form of the spin operators for arbitrary total angular momentum
 quantum number `J`
 """
 function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
+    mJ = -J:1:J
     if isequal(a, "x")
-        mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
         Jp = diagm(1=>jp_eigval[1:end-1])
         Jm = diagm(-1=>jm_eigval[2:end])
         Jx = (Jp + Jm)/2.0
     elseif isequal(a, "y")
-        mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
         Jp = diagm(1=>jp_eigval[1:end-1])
         Jm = diagm(-1=>jm_eigval[2:end])
         Jy = (Jp - Jm)/2.0im
     elseif isequal(a, "z")
-        mJ = -J:1:J
         Jz = diagm(mJ)
     elseif isequal(a, "+")
-        mJ = -J:1:J
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         Jp = diagm(1=>jp_eigval[1:end-1])
     elseif isequal(a, "-")
-        mJ = -J:1:J
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
         Jm = diagm(-1=>jm_eigval[2:end])
     end

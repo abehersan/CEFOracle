@@ -69,7 +69,6 @@ function wigner_D(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF
                 rotation_matrix_element(l, mm, mp, alpha, beta, gamma)
         end
     end
-    # @assert is_unitary(rot_mat)
     rot_mat
 end
 
@@ -108,49 +107,49 @@ end
 
 
 """
-    rotate_blm(Blm::DataFrame, alpha::Real, beta::Real, gamma::Real)::DataFrame
+    rotate_blm(bfactors::DataFrame, alpha::Real, beta::Real, gamma::Real)::DataFrame
 
-Rotate given CEF Hamiltonian defined by given Stevens parameters Blm via
-Blm(J') = A D A^-1 Blm(J),
+Rotate given CEF Hamiltonian defined by given Stevens parameters bfactors via
+bfactors(J') = A D A^-1 bfactors(J),
 where A is a diagonal and antidiagonal matrix relating the tesseral (Stevens)
 operators O^l_m to the spherical (Racah) tensors T^l_m and
 D is Wigner's D matrix parametrized by the Euler angles alpha, beta, gamma.
 
 The Euler angles alpha, beta and gamma must be inputted in radian.
+
+TODO: optimize by eliminating the inner loop, appending to empty Dframe,
+eliminate try/except block, begin with `full_dframe` for example
 """
-function rotate_blm(Blm::DataFrame, alpha::Real, beta::Real, gamma::Real)::DataFrame
-    Blm_rotated = DataFrame(Blm = Float64[], l = Int[], m = Int[])
-    ls = sort(collect(Set(Blm[:, :l])))
+function rotate_blm(bfactors::DataFrame, alpha::Real, beta::Real, gamma::Real)::DataFrame
+    bfactors_rotated = DataFrame(bfactors = Float64[], l = Int[], m = Int[])
+    ls = sort(collect(Set(bfactors[:, :l])))
     for l in ls
         S_matrix = rotate_stevens(l, alpha, beta, gamma)
-        Blm_ori = zeros(Float64, Int(2l+1)) # original CEF parameters
-        Blm_rot = zeros(ComplexF64, Int(2l+1)) # rotated CEF params (complex)
-        Blm_res = zeros(Float64, Int(2l+1)) # rotated CEF parameters (real)
+        bfactors_ori = zeros(Float64, Int(2l+1)) # original CEF parameters
+        bfactors_rot = zeros(ComplexF64, Int(2l+1)) # rotated CEF params (complex)
+        bfactors_res = zeros(Float64, Int(2l+1)) # rotated CEF parameters (real)
         for (i, m) in enumerate(-l:1:l)
             try
-                Blm_ori[i] = Blm[(Blm.l .== l) .& (Blm.m .== m), :Blm][1]
+                bfactors_ori[i] = bfactors[(bfactors.l .== l) .& (bfactors.m .== m), :Blm][1]
             catch ex
                 if isa(ex, BoundsError)
-                    Blm_ori[i] = 0.0
+                    bfactors_ori[i] = 0.0
                 end
             end
         end
-        # S * Blm where Blm is a (2l+1) vector
-        Blm_rot .= S_matrix * Blm_ori
-        # @assert norm(imag(Blm_rot)) < 1e-12
-        Blm_res .= real(Blm_rot)
-        append!(Blm_rotated,
-                DataFrame("Blm"=>Blm_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
+        # S * bfactors where bfactors is a (2l+1) vector
+        bfactors_rot .= S_matrix * bfactors_ori
+        # @assert norm(imag(bfactors_rot)) < 1e-12
+        bfactors_res .= real(bfactors_rot)
+        append!(bfactors_rotated,
+                DataFrame("bfactors"=>bfactors_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
     end
-    Blm_rotated
+    bfactors_rotated
 end
 
 
 function rotate_stevens(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
-    rot_mat = zeros(ComplexF64, (2l+1, 2l+1))
-    rot_mat .= transpose(inv(Alm_matrix(l))) * wigner_D(l, alpha, beta, gamma)' *
-              transpose(Alm_matrix(l))
-    rot_mat
+    transpose(inv(Alm_matrix(l))) * wigner_D(l, alpha, beta, gamma)' * transpose(Alm_matrix(l))
 end
 
 
@@ -162,15 +161,14 @@ The ordering convention is that of O = (Ol-l, 0l-l+1, ..., Oll-1, Oll)
 I.e. ascending order in m in {-l, l}
 """
 function Alm_matrix(l::Int)::Matrix{ComplexF64}
-    alm_coeff = SMatrix{6, 7}([
+    alm_coeff = OffsetArray(SMatrix{6, 7}([
         1           1/sqrt(2)       0               0               0               0           0;
         sqrt(6)     1/2             1               0               0               0           0;
         sqrt(10)    sqrt(10/3)      1/sqrt(3)       sqrt(2)         0               0           0;
         2*sqrt(70)  sqrt(7/2)       sqrt(7)         1/sqrt(2)       2               2           0;
         6*sqrt(14)  2*sqrt(21/5)    sqrt(3/5)       6*sqrt(2/5)     2/sqrt(5)       2*sqrt(2)   0;
         4*sqrt(231) sqrt(22)        4*sqrt(11/5)    2*sqrt(11/5)    4*sqrt(11/6)    2/sqrt(3)   4;
-    ])
-    alm_coeff = OffsetArray(alm_coeff, 1:6, 0:6) # column index is l, row is m
+    ]), 1:6, 0:6)
     a_matrix = OffsetArray(zeros(ComplexF64, (2l+1, 2l+1)), -l:l, -l:l)
     for m in -l:1:l
         if iszero(m)

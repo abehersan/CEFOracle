@@ -112,23 +112,23 @@ function parse_blm(b_vec::Vector)::Tuple{Vector, Vector}
 end
 
 
-function full_blm_dframe(Blm::DataFrame)::DataFrame
-    Blm_full = DataFrame(Blm = Float64[], l = Int[], m = Int[])
+function full_blm_dframe(bfactors::DataFrame)::DataFrame
+    bfactors_full = DataFrame(Blm = Float64[], l = Int[], m = Int[])
     for l in [1, 2, 4, 6]
-        Blm_fl = zeros(Float64, Int(2l+1))
+        bfactors_fl = zeros(Float64, Int(2l+1))
         for (i, m) in enumerate(-l:1:l)
             try
-                Blm_fl[i] = Blm[(Blm.l .== l) .& (Blm.m .== m), :Blm][1]
+                bfactors_fl[i] = Blm[(Blm.l .== l) .& (Blm.m .== m), :Blm][1]
             catch ex
                 if isa(ex, BoundsError)
-                    Blm_fl[i] = 0.0
+                    bfactors_fl[i] = 0.0
                 end
             end
         end
-        append!(Blm_full,
-            DataFrame("Blm"=>Blm_fl, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
+        append!(bfactors_full,
+            DataFrame("bfactors"=>Blm_fl, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
     end
-    Blm_full
+    bfactors_full
 end
 
 

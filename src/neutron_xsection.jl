@@ -93,8 +93,7 @@ function cef_neutronxsection_crystal(single_ion::mag_ion, bfactors::DataFrame;
     for a in eachindex(Q), b in eachindex(Q)
         pol_factor[a, b] = (isequal(a, b) * 1.0 - Q[a]*Q[b]/Qnorm)
     end
-    ins_xsection::Float64 = abs(dipolar_form_factor(single_ion, Qnorm))^2 *
-                            sum(pol_factor .* S_alphabeta)
+    abs(dipolar_form_factor(single_ion, Qnorm))^2 * sum(pol_factor .* S_alphabeta)
 end
 
 
@@ -134,8 +133,7 @@ function cef_neutronxsection_powder(single_ion::mag_ion, bfactors::DataFrame;
                                         R=R, E=E, J_alpha=spin_ops[a],
                                         J_beta=spin_ops[a], T=T)
     end
-    ins_xsection::Float64 = abs(dipolar_form_factor(single_ion, Q))^2 *
-                            (2.0/3.0 * S_alphabeta)
+    abs(dipolar_form_factor(single_ion, Q))^2 * (2.0/3.0 * S_alphabeta)
 end
 
 
@@ -164,7 +162,7 @@ function cef_neutronxsection_multisite(sites::AbstractVector, E::Float64,
     ins_xsection::Float64 = 0.0
     for site in sites
         ins_xsection += cef_neutronxsection_powder(site.single_ion, site.bfactors,
-                                                  E=E, Q=Q, T=T, B=B,
+                                                  E=E, Q=Q, T=T, B=site.B,
                                                   R=R) * site.site_ratio
     end
     ins_xsection
