@@ -1,17 +1,14 @@
 """
-Reproduction of results from Rotter, Bauer paper, CEF model A
+Reproduction of results from the paper by Rotter and Bauer
 """
 
 
 using CEFOracle, LaTeXStrings, Plots
-gr()
 
 
 yb = single_ion("Yb3")
-bs_modelA = Dict("B20"=>0.5622, "B40"=>1.6087e-5, "B60"=>6.412e-7, "B66"=>-8.324e-6)
-bs_modelB = Dict("B20"=>-0.06364, "B40"=>2.713e-3, "B60"=>-5.5335e-6, "B66"=>-6.659e-5)
-bdf_A = blm_dframe(bs_modelA)
-bdf_B = blm_dframe(bs_modelB)
+bfactors_A = blm_dframe(Dict("B20"=>0.5622, "B40"=>1.6087e-5, "B60"=>6.412e-7, "B66"=>-8.324e-6))
+bfactors_B = blm_dframe(Dict("B20"=>-0.06364, "B40"=>2.713e-3, "B60"=>-5.5335e-6, "B66"=>-6.659e-5))
 
 
 """
@@ -22,7 +19,11 @@ es = LinRange(-12, 12, 700)
 temps = [10.0, 50.0, 200.0]
 ins_plot = plot(xlabel="Energy [meV]", ylabel="I(Q, E) [arb. units]")
 for t in temps
-    ins_xsection = [cef_neutronxsection_powder(yb, bdf_A, E=e, Q=2.55, T=t) for e in es]
+    ins_xsection = zeros(Float64, length(es))
+    for i in eachindex(es)
+        ins_xsection[i] = cef_neutronxsection_powder(yb, bfactors_A, E=es[i],
+                                                    Q=2.25, T=t)
+    end
     plot!(es, ins_xsection, label="T=$t K")
 end
 
@@ -32,16 +33,14 @@ calculate the Schottky specific heat capacity for both models
 reproduces figure 8 of the paper
 """
 temps = LinRange(0.5, 300, 150)
-# cv_A = [cef_heatcapacity_speclevels(yb,bdf_A,T=t,1:6) for t in temps]
-# cv_B = [cef_heatcapacity_speclevels(yb,bdf_B,T=t,1:6) for t in temps]
-cv_A = [cef_heatcapacity(yb, bdf_A, T=t) for t in temps]
-cv_B = [cef_heatcapacity(yb, bdf_B, T=t) for t in temps]
-cv_plot = plot(
-            temps, [cv_A cv_B],
-            label=["A" "B"],
-            xlabel="Temperature [Kelvin]",
-            ylabel = "Cv [J/K/mol]"
-           )
+cv_A = zeros(Float64, length(temps))
+cv_B = zeros(Float64, length(temps))
+for i in eachindex(temps)
+    cv_A[i] = cef_heatcapacity(yb, bfactors_A, T=temps[i])
+    cv_B[i] = cef_heatcapacity(yb, bfactors_B, T=temps[i])
+end
+cv_plot = plot(temps, [cv_A cv_B], label=["A" "B"],
+               xlabel="Temperature [Kelvin]", ylabel = "Cv [J/K/mol]")
 
 
 """
@@ -51,20 +50,19 @@ reproduces figure 11 of the paper
 """
 T = 0.5
 fields = LinRange(0.0, 12, 150)
-mag_A_para = [cef_magnetization_crystal(yb,bdf_A,T=T,Bext=[b,0,0],units="ATOMIC") for b in fields]
-mag_A_perp = [cef_magnetization_crystal(yb,bdf_A,T=T,Bext=[0,0,b],units="ATOMIC") for b in fields]
-mag_B_para = [cef_magnetization_crystal(yb,bdf_B,T=T,Bext=[b,0,0],units="ATOMIC") for b in fields]
-mag_B_perp = [cef_magnetization_crystal(yb,bdf_B,T=T,Bext=[0,0,b],units="ATOMIC") for b in fields]
-# mag_A_powd = [cef_magnetization(yb,bdf_A,T,b,"atomic") for b in fields]
-# mag_B_powd = [cef_magnetization(yb,bdf_B,T,b,"atomic") for b in fields]
-mag_A_powd = @. 2/3 * mag_A_perp + 1/3 * mag_A_perp
-mag_B_powd = @. 2/3 * mag_B_perp + 1/3 * mag_B_perp
-mag_plot = plot(
-            fields, [mag_A_para mag_A_perp mag_B_para mag_B_perp mag_A_powd mag_B_powd],
-            label=[L"B\parallel c_{A}" L"B\perp c_{A}" L"B\parallel c_{B}" L"B\perp c_{B}" "Powder A" "Powder B"],
-            xlabel="Field [Tesla]",
-            ylabel="M " * L"[\mu_{B}/ion]"
-            )
+mag_A_para = zeros(Float64, length(fields))
+mag_A_perp = zeros(Float64, length(fields))
+mag_B_para = zeros(Float64, length(fields))
+mag_B_perp = zeros(Float64, length(fields))
+for i in eachindex(fields)
+    mag_A_para[i] = cef_magnetization_crystal(yb, bfactors_A, T=T, B=[fields[i],0,0], units="ATOMIC")
+    mag_A_perp[i] = cef_magnetization_crystal(yb, bfactors_A, T=T, B=[0,0,fields[i]], units="ATOMIC")
+    mag_B_para[i] = cef_magnetization_crystal(yb, bfactors_B, T=T, B=[fields[i],0,0], units="ATOMIC")
+    mag_B_perp[i] = cef_magnetization_crystal(yb, bfactors_B, T=T, B=[0,0,fields[i]], units="ATOMIC")
+end
+mag_plot = plot(fields, [mag_A_para mag_A_perp mag_B_para mag_B_perp],
+            label=[L"B\parallel c_{A}" L"B\perp c_{A}" L"B\parallel c_{B}" L"B\perp c_{B}"],
+            xlabel="Field [Tesla]", ylabel="M " * L"[\mu_{B}/ion]")
 
 
 """
@@ -75,16 +73,16 @@ reproduces figure 14 of the paper
 """
 bext = 0.05
 temps = LinRange(0.5, 300, 150)
-invchi_para = [1/cef_susceptibility_crystal(yb,bdf_A,T=t,Bext=[0,0,bext],units="CGS") for t in temps]
-invchi_perp = [1/cef_susceptibility_crystal(yb,bdf_A,T=t,Bext=[bext,0,0],units="CGS") for t in temps]
-# invchi_powd = [1/cef_susceptibility(yb,bdf_A,t,bext, "CGS") for t in temps]
+invchi_para = zeros(Float64, length(temps))
+invchi_perp = zeros(Float64, length(temps))
+for i in eachindex(temps)
+    invchi_para[i] = 1/cef_susceptibility_crystal(yb, bfactors_A, T=temps[i], B=[0,0,bext], units="CGS")
+    invchi_perp[i] = 1/cef_susceptibility_crystal(yb, bfactors_A, T=temps[i], B=[bext,0,0], units="CGS")
+end
 invchi_powd_c = (2/3 .* invchi_perp .+ 1/3 .* invchi_para)
-invchi_plot = plot(
-                temps, [invchi_para invchi_perp invchi_powd_c],
-                label=[L"B\parallel c" L"B\perp c" "Powder" "Calc powder"],
-                xlabel="Temperature [Kelvin]",
-                ylabel=L"1/\chi\;[mol/emu]"
-                )
+invchi_plot = plot(temps, [invchi_para invchi_perp invchi_powd_c],
+                label=["B parallel c" "B perp c" "Powder"],
+                xlabel="Temperature [Kelvin]", ylabel="1/Susceptibility [mol/emu]")
 
 
 plot(ins_plot, cv_plot, mag_plot, invchi_plot, layout=(2, 2), legend=true,

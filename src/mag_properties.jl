@@ -92,7 +92,7 @@ function cef_magnetization_crystal(single_ion::mag_ion, bfactors::DataFrame;
                           T::Real=1.5, B::Vector{<:Real}=zeros(3),
                           units::String="SI")::Float64
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, bfactors, B=Bext)
+        cef_eigensystem(single_ion, bfactors, B=B)
     cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
@@ -115,7 +115,7 @@ function cef_magnetization_crystal(single_ion::mag_ion, bfactors::DataFrame;
             @error "Units $units not understood. Use one of either 'SI', 'CGS' or 'ATOMIC'"
         end
     end
-    dot(magnetization_vector .* (convfac * single_ion.gJ), B / norm(Bext))
+    dot(magnetization_vector .* (convfac * single_ion.g), B / norm(B))
 end
 
 
@@ -137,9 +137,9 @@ and equivalently equation 9.23 of Furrer/Messot/Strässle
 function cef_magnetization_powder(single_ion::mag_ion, bfactors::DataFrame;
                                  T::Real=1.5, B::Real=0.0, units::String="SI")::Float64
     magnetization_vector::Vector{Float64} = [
-        cef_magnetization_crystal(single_ion, bfactors, T=T, B=[Bext,0,0], units=units),
-        cef_magnetization_crystal(single_ion, bfactors, T=T, B=[0,Bext,0], units=units),
-        cef_magnetization_crystal(single_ion, bfactors, T=T, B=[0,0,Bext], units=units)
+        cef_magnetization_crystal(single_ion, bfactors, T=T, B=[B,0,0], units=units),
+        cef_magnetization_crystal(single_ion, bfactors, T=T, B=[0,B,0], units=units),
+        cef_magnetization_crystal(single_ion, bfactors, T=T, B=[0,0,B], units=units)
        ]
     norm(magnetization_vector)
 end
@@ -165,12 +165,12 @@ function cef_magnetization_multisite(sites::AbstractVector; T::Real=1.5,
     for site in sites
         try
             magnetization_vector += cef_magnetization_crystal(site.single_ion, site.bfactors,
-                                                              T=T, B=site.Bext,
+                                                              T=T, B=site.B,
                                                               units=units) * site.site_ratio
         catch e
             if isa(e, MethodError)
                 magnetization_vector += cef_magnetization_powder(site.single_ion, site.bfactors,
-                                                                 T=T, B=site.Bext,
+                                                                 T=T, B=site.B,
                                                                  units) * site.site_ratio
             else
                 @error e
@@ -240,7 +240,7 @@ function cef_susceptibility_crystal(single_ion::mag_ion, bfactors::DataFrame;
                                    T::Real=1.5, B::Vector{<:Real}=zeros(3),
                                    units::String="SI")::Float64
     _, cef_energies, cef_wavefunctions =
-    cef_eigensystem(single_ion, bfactors, B=Bext)
+    cef_eigensystem(single_ion, bfactors, B=B)
     cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
@@ -264,7 +264,7 @@ function cef_susceptibility_crystal(single_ion::mag_ion, bfactors::DataFrame;
         end
     end
     # Note that chi_SI = (4pi*10^-6)chi_cgs
-    dot(susceptibility_vector .* (convfac * single_ion.gJ), B/norm(Bext))
+    dot(susceptibility_vector .* (convfac * single_ion.g), B/norm(B))
 end
 
 
@@ -291,9 +291,9 @@ function cef_susceptibility_powder(single_ion::mag_ion, bfactors::DataFrame;
                                   T::Real=1.5, B::Real=0.0,
                                   units::String="SI")::Float64
     susceptibility_vector::Vector{Float64} = [
-        cef_susceptibility_crystal(single_ion, bfactors, T=T, B=[Bext,0,0], units=units),
-        cef_susceptibility_crystal(single_ion, bfactors, T=T, B=[0,Bext,0], units=units),
-        cef_susceptibility_crystal(single_ion, bfactors, T=T, B=[0,0,Bext], units=units)]
+        cef_susceptibility_crystal(single_ion, bfactors, T=T, B=[B,0,0], units=units),
+        cef_susceptibility_crystal(single_ion, bfactors, T=T, B=[0,B,0], units=units),
+        cef_susceptibility_crystal(single_ion, bfactors, T=T, B=[0,0,B], units=units)]
     norm(susceptibility_vector)
 end
 
@@ -319,13 +319,13 @@ function cef_susceptibility_multisite(sites::AbstractVector, T::Real,
         try
             susceptibility_vector .+= cef_susceptibility_crystal(site.single_ion,
                                                                  site.bfactors, T=T,
-                                                                 B=site.Bext,
+                                                                 B=site.B,
                                                                  units=units) * site.site_ratio
         catch e
             if isa(e, MethodError)
                 susceptibility_vector += cef_susceptibility_powder(site.single_ion,
                                                                   site.bfactors, T=T,
-                                                                  B=site.Bext,
+                                                                  B=site.B,
                                                                   units=units) * site.site_ratio
             else
                 @error e
@@ -344,9 +344,8 @@ energy levels of a CEF model.
 Implementation of equation 9.25 of Furrer/Messot/Strässle
 """
 function calc_heatcap(; Ep::Vector{Float64}, T::Real)::Float64
-    heatcap::Float64 = 0.0
     np = population_factor(Ep, T)
-    heatcap += sum((Ep/(kB*T)).^2 .* np)
+    heatcap = sum((Ep/(kB*T)).^2 .* np)
     heatcap -= sum((Ep/(kB*T).*np).^2)
     heatcap
 end
@@ -393,11 +392,69 @@ function cef_heatcapacity_speclevels(single_ion::mag_ion, bfactors::DataFrame;
     cef_energies .-= minimum(cef_energies)
     convfac = begin
         if isequal(units, "SI")
-            NA * 1.602176487*1e-22  # NA * muB [J/mol]
+            NA * 1.602176487*1e-22  # NA * muB
         else
             @warn "Units not supported in Cv calculations. Use SI, [J/K/mol]"
-            NA * 1.602176487*1e-22  # NA * muB [J/mol]
+            NA * 1.602176487*1e-22  # NA * muB
         end
     end
     calc_heatcap(Ep=cef_energies[levels], T=T) * convfac * kB
+end
+
+
+"""
+    calc_entropy(; Ep::Vector{Float64}, T::Real)::Float64
+
+Calculate the magnetic entropy given the CEF levels of a Hamiltonian.
+"""
+function calc_entropy(; Ep::Vector{Float64}, T::Real)::Float64
+    Z = partition_function(Ep, T)
+    log2(Z) - log2(partition_function(Ep, 1e-3))
+end
+
+
+"""
+    cef_entropy(single_ion::mag_ion, bfactors::DataFrame; T::Real, units::String="SI")::Float64
+
+Calculate the CEF contribution to the magnetic entropy of a system.
+S = kB log2 Z, where Z is the partition function of the system.
+"""
+function cef_entropy(single_ion::mag_ion, bfactors::DataFrame; T::Real,
+                     units::String="SI")::Float64
+    _, cef_energies, _ = cef_eigensystem(single_ion, bfactors)
+    cef_energies .-= minimum(cef_energies)
+    convfac = begin
+        if isequal(units, "SI")
+            NA * 1.602176487*1e-22  # NA * muB
+        else
+            @warn "Units not supported in Cv calculations. Use SI, [J/K/mol]"
+            NA * 1.602176487*1e-22  # NA * muB
+        end
+    end
+    calc_entropy(Ep=cef_energies, T=T) * convfac * kB
+end
+
+
+"""
+    cef_entropy_speclevels(single_ion::mag_ion, bfactors::DataFrame; T::Real=1.5, levels::UnitRange=1:4, units::String="SI")::Float64
+
+Calculate the CEF contribution to the magnetic entropy of a system.
+S = kB log2 Z, where Z is the partition function of the system.
+Only CEF levels specified in `levels` contribute to the magnetic entropy.
+There are 2J+1 CEF levels per Hamiltonian with varyiing degrees of degeneracy.
+"""
+function cef_entropy_speclevels(single_ion::mag_ion, bfactors::DataFrame;
+                                T::Real=1.5, levels::UnitRange=1:4,
+                                units::String="SI")::Float64
+    _, cef_energies, _ = cef_eigensystem(single_ion, bfactors)
+    cef_energies .-= minimum(cef_energies)
+    convfac = begin
+        if isequal(units, "SI")
+            NA * 1.602176487*1e-22  # NA * muB
+        else
+            @warn "Units not supported in Cv calculations. Use SI, [J/K/mol]"
+            NA * 1.602176487*1e-22  # NA * muB
+        end
+    end
+    calc_entropy(Ep=cef_energies[levels], T=T) * convfac * kB
 end

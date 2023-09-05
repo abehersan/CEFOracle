@@ -14,7 +14,7 @@ export single_ion, mag_ion
 
 
 include("./units.jl")
-export meV_per_K, mu0, muB, kB, NA, R
+export meV_per_K, mu0, muB, kB, NA, Rg
 
 
 include("./utils.jl")
@@ -32,6 +32,7 @@ include("./mag_properties.jl")
 export cef_magnetization_crystal, cef_magnetization_powder, cef_magnetization_multisite
 export cef_susceptibility_crystal, cef_susceptibility_powder, cef_susceptibility_multisite
 export cef_heatcapacity, cef_heatcapacity_speclevels
+export cef_entropy, cef_entropy_speclevels
 
 
 include("./neutron_xsection.jl")

@@ -18,7 +18,7 @@ function dipolar_form_factor(ion::mag_ion, Q::Real)::Float64
     s = Q / 4pi
     ff_j0 = A_j0 * exp(-a_j0*s^2) + B_j0 * exp(-b_j0*s^2) + C_j0 * exp(-c_j0*s^2) + D_j0
     ff_j2 = A_j2*s^2 * exp(-a_j2*s^2) + B_j2*s^2 * exp(-b_j2*s^2) + C_j2*s^2 * exp(-c_j2*s^2) + D_j2*s^2
-    ff_j0 + ( (2-ion.gJ)/ion.gJ ) * ff_j2
+    ff_j0 + ( (2-ion.g)/ion.g ) * ff_j2
 end
 
 
@@ -51,7 +51,7 @@ end
 
 
 """
-    cef_neutronxsection_crystal(single_ion::mag_ion, Blm::DataFrame; E::Float64=0.0, Q::Vector{Real}=[0,0,0], T::Float64=2.0, Bext::Vector{<:Real}=[0,0,0], R::Function=TAS_resfunc)
+    cef_neutronxsection_crystal(single_ion::mag_ion, bfactors::DataFrame; E::Float64=0.0, Q::Vector{Real}=[0,0,0], T::Float64=2.0, B::Vector{<:Real}=[0,0,0], R::Function=TAS_resfunc)
 
 Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
 Hamiltonian.
@@ -70,12 +70,12 @@ in cartesian reciprocal lattice units.
 Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
 and eqn. (8.11) of Boothroyd.
 """
-function cef_neutronxsection_crystal(single_ion::mag_ion, Blm::DataFrame;
+function cef_neutronxsection_crystal(single_ion::mag_ion, bfactors::DataFrame;
                                     E::Real=0.0, Q::Vector{<:Real}=[0,0,0],
-                                    T::Float64=2.0, Bext::Vector{<:Real}=[0,0,0],
+                                    T::Float64=2.0, B::Vector{<:Real}=[0,0,0],
                                     R::Function=TAS_resfunc)::Float64
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, Blm, Bext=Bext)
+        cef_eigensystem(single_ion, bfactors, B=B)
     cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
@@ -99,7 +99,7 @@ end
 
 
 """
-    cef_neutronxsection_powder(single_ion::mag_ion, Blm::DataFrame; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, Bext::Real=0, R::Function=TAS_resfunc)
+    cef_neutronxsection_powder(single_ion::mag_ion, bfactors::DataFrame; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, B::Real=0, R::Function=TAS_resfunc)
 
 Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
 Hamiltonian.
@@ -117,12 +117,12 @@ For a polycrystal Q is a single real number.
 Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
 and eqn. (8.11) of Boothroyd.
 """
-function cef_neutronxsection_powder(single_ion::mag_ion, Blm::DataFrame;
+function cef_neutronxsection_powder(single_ion::mag_ion, bfactors::DataFrame;
                                    E::Real=0.0, Q::Real=0.0,
-                                   T::Float64=2.0, Bext::Real=0.0,
+                                   T::Float64=2.0, B::Real=0.0,
                                    R::Function=TAS_resfunc)::Float64
     _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, Blm)
+        cef_eigensystem(single_ion, bfactors)
     cef_energies .-= minimum(cef_energies)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
@@ -159,12 +159,12 @@ and eqn. (8.11) of Boothroyd.
 """
 function cef_neutronxsection_multisite(sites::AbstractVector, E::Float64,
                                       Q::Float64, T::Float64=2.0,
-                                      Bext::Float64=0.0, R::Function=TAS_resfunc
+                                      B::Float64=0.0, R::Function=TAS_resfunc
                                       )::Float64
     ins_xsection::Float64 = 0.0
     for site in sites
-        ins_xsection += cef_neutronxsection_powder(site.single_ion, site.Blm,
-                                                  E=E, Q=Q, T=T, Bext=Bext,
+        ins_xsection += cef_neutronxsection_powder(site.single_ion, site.bfactors,
+                                                  E=E, Q=Q, T=T, B=B,
                                                   R=R) * site.site_ratio
     end
     ins_xsection
