@@ -74,17 +74,17 @@ function cef_neutronxsection_crystal(single_ion::mag_ion, bfactors::DataFrame;
                                     E::Real=0.0, Q::Vector{<:Real}=[0,0,0],
                                     T::Float64=2.0, B::Vector{<:Real}=[0,0,0],
                                     R::Function=TAS_resfunc)::Float64
-    _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, bfactors, B=B)
-    cef_energies .-= minimum(cef_energies)
+    cef_eigenvecs = cef_wavefunctions(single_ion, bfactors, B=B)
+    cef_levels = cef_energies(single_ion, bfactors, B=B)
+    cef_levels .-= minimum(cef_levels)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
     spin_ops = [Jx, Jy, Jz]
     S_alphabeta = zeros(Float64, (3, 3))
     for a in eachindex(spin_ops), b in eachindex(spin_ops)
-        S_alphabeta[a, b] = calc_S_alphabeta(Ep=cef_energies,
-                                            Vp=cef_wavefunctions, R=R, E=E,
+        S_alphabeta[a, b] = calc_S_alphabeta(Ep=cef_levels,
+                                            Vp=cef_eigenvecs, R=R, E=E,
                                             J_alpha=spin_ops[a],
                                             J_beta=spin_ops[b], T=T)
     end
@@ -120,16 +120,16 @@ function cef_neutronxsection_powder(single_ion::mag_ion, bfactors::DataFrame;
                                    E::Real=0.0, Q::Real=0.0,
                                    T::Float64=2.0, B::Real=0.0,
                                    R::Function=TAS_resfunc)::Float64
-    _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, bfactors)
-    cef_energies .-= minimum(cef_energies)
+    cef_eigenvecs = cef_wavefunctions(single_ion, bfactors)
+    cef_levels = cef_energies(single_ion, bfactors)
+    cef_levels .-= minimum(cef_levels)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
     spin_ops = [Jx, Jy, Jz]
     S_alphabeta::Float64 = 0.0
     for a in eachindex(spin_ops)
-        S_alphabeta += calc_S_alphabeta(Ep=cef_energies, Vp=cef_wavefunctions,
+        S_alphabeta += calc_S_alphabeta(Ep=cef_levels, Vp=cef_eigenvecs,
                                         R=R, E=E, J_alpha=spin_ops[a],
                                         J_beta=spin_ops[a], T=T)
     end
@@ -162,7 +162,7 @@ function cef_neutronxsection_multisite(sites::AbstractVector, E::Float64,
     ins_xsection::Float64 = 0.0
     for site in sites
         ins_xsection += cef_neutronxsection_powder(site.single_ion, site.bfactors,
-                                                  E=E, Q=Q, T=T, B=site.B,
+                                                  E=E, Q=Q, T=T, B=0.0,
                                                   R=R) * site.site_ratio
     end
     ins_xsection

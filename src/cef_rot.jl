@@ -121,7 +121,7 @@ TODO: optimize by eliminating the inner loop, appending to empty Dframe,
 eliminate try/except block, begin with `full_dframe` for example
 """
 function rotate_blm(bfactors::DataFrame, alpha::Real, beta::Real, gamma::Real)::DataFrame
-    bfactors_rotated = DataFrame(bfactors = Float64[], l = Int[], m = Int[])
+    bfactors_rotated = DataFrame(Blm = Float64[], l = Int[], m = Int[])
     ls = sort(collect(Set(bfactors[:, :l])))
     for l in ls
         S_matrix = rotate_stevens(l, alpha, beta, gamma)
@@ -142,7 +142,7 @@ function rotate_blm(bfactors::DataFrame, alpha::Real, beta::Real, gamma::Real)::
         # @assert norm(imag(bfactors_rot)) < 1e-12
         bfactors_res .= real(bfactors_rot)
         append!(bfactors_rotated,
-                DataFrame("bfactors"=>bfactors_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
+                DataFrame("Blm"=>bfactors_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
     end
     bfactors_rotated
 end

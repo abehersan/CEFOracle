@@ -91,17 +91,17 @@ and equivalently equation 9.23 of Furrer/Messot/Strässle
 function cef_magnetization_crystal(single_ion::mag_ion, bfactors::DataFrame;
                           T::Real=1.5, B::Vector{<:Real}=zeros(3),
                           units::String="SI")::Float64
-    _, cef_energies, cef_wavefunctions =
-        cef_eigensystem(single_ion, bfactors, B=B)
-    cef_energies .-= minimum(cef_energies)
+    cef_eigenvecs = cef_wavefunctions(single_ion, bfactors, B=B)
+    cef_levels = cef_energies(single_ion, bfactors, B=B)
+    cef_levels .-= minimum(cef_levels)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
     magnetization_vector = zeros(Float64, 3)
     spin_ops = [Jx, Jy, Jz]
     for a in eachindex(spin_ops)
-        magnetization_vector[a] = calc_magnetization(Ep=cef_energies,
-                                              Vp=cef_wavefunctions,
+        magnetization_vector[a] = calc_magnetization(Ep=cef_levels,
+                                              Vp=cef_eigenvecs,
                                               J_alpha=spin_ops[a], T=T)
     end
     convfac = begin
@@ -239,17 +239,17 @@ Equivalently, implementation of equation 9.24 of Furrer/Messot/Strässle
 function cef_susceptibility_crystal(single_ion::mag_ion, bfactors::DataFrame;
                                    T::Real=1.5, B::Vector{<:Real}=zeros(3),
                                    units::String="SI")::Float64
-    _, cef_energies, cef_wavefunctions =
-    cef_eigensystem(single_ion, bfactors, B=B)
-    cef_energies .-= minimum(cef_energies)
+    cef_eigenvecs = cef_wavefunctions(single_ion, bfactors, B=B)
+    cef_levels = cef_energies(single_ion, bfactors, B=B)
+    cef_levels .-= minimum(cef_levels)
     Jx = spin_operators(single_ion.J, "x")
     Jy = spin_operators(single_ion.J, "y")
     Jz = spin_operators(single_ion.J, "z")
     spin_ops = [Jx, Jy, Jz]
     susceptibility_vector = zeros(Float64, 3)
     for a in eachindex(spin_ops)
-        susceptibility_vector[a] = calc_susceptibility(Ep=cef_energies,
-                                                      Vp=cef_wavefunctions,
+        susceptibility_vector[a] = calc_susceptibility(Ep=cef_levels,
+                                                      Vp=cef_eigenvecs,
                                                       J_alpha=spin_ops[a], T=T)
     end
     convfac = begin
@@ -362,8 +362,8 @@ Implementation of equation 9.25 of Furrer/Messot/Strässle.
 """
 function cef_heatcapacity(single_ion::mag_ion, bfactors::DataFrame; T::Real=1.5,
                          units::String="SI")::Float64
-    _, cef_energies, _ = cef_eigensystem(single_ion, bfactors)
-    cef_energies .-= minimum(cef_energies)
+    cef_levels = cef_energies(single_ion, bfactors)
+    cef_levels .-= minimum(cef_levels)
     convfac = begin
         if isequal(units, "SI")
             NA * 1.602176487*1e-22  # NA * muB [J/mol]
@@ -372,7 +372,7 @@ function cef_heatcapacity(single_ion::mag_ion, bfactors::DataFrame; T::Real=1.5,
             NA * 1.602176487*1e-22  # NA * muB [J/mol]
         end
     end
-    calc_heatcap(Ep=cef_energies, T=T) * convfac * kB
+    calc_heatcap(Ep=cef_levels, T=T) * convfac * kB
 end
 
 
@@ -388,8 +388,8 @@ function cef_heatcapacity_speclevels(single_ion::mag_ion, bfactors::DataFrame;
                                     T::Real=1.5, levels::UnitRange=1:4,
                                     units::String="SI")::Float64
     # only levels specified contribute (2J+1 levels total)
-    _, cef_energies, _ = cef_eigensystem(single_ion, bfactors)
-    cef_energies .-= minimum(cef_energies)
+    cef_levels = cef_energies(single_ion, bfactors)
+    cef_levels .-= minimum(cef_levels)
     convfac = begin
         if isequal(units, "SI")
             NA * 1.602176487*1e-22  # NA * muB
@@ -398,7 +398,7 @@ function cef_heatcapacity_speclevels(single_ion::mag_ion, bfactors::DataFrame;
             NA * 1.602176487*1e-22  # NA * muB
         end
     end
-    calc_heatcap(Ep=cef_energies[levels], T=T) * convfac * kB
+    calc_heatcap(Ep=cef_levels[levels], T=T) * convfac * kB
 end
 
 
@@ -421,8 +421,8 @@ S = kB log2 Z, where Z is the partition function of the system.
 """
 function cef_entropy(single_ion::mag_ion, bfactors::DataFrame; T::Real,
                      units::String="SI")::Float64
-    _, cef_energies, _ = cef_eigensystem(single_ion, bfactors)
-    cef_energies .-= minimum(cef_energies)
+    cef_levels = cef_energies(single_ion, bfactors)
+    cef_levels .-= minimum(cef_levels)
     convfac = begin
         if isequal(units, "SI")
             NA * 1.602176487*1e-22  # NA * muB
@@ -431,7 +431,7 @@ function cef_entropy(single_ion::mag_ion, bfactors::DataFrame; T::Real,
             NA * 1.602176487*1e-22  # NA * muB
         end
     end
-    calc_entropy(Ep=cef_energies, T=T) * convfac * kB
+    calc_entropy(Ep=cef_levels, T=T) * convfac * kB
 end
 
 
@@ -446,8 +446,8 @@ There are 2J+1 CEF levels per Hamiltonian with varyiing degrees of degeneracy.
 function cef_entropy_speclevels(single_ion::mag_ion, bfactors::DataFrame;
                                 T::Real=1.5, levels::UnitRange=1:4,
                                 units::String="SI")::Float64
-    _, cef_energies, _ = cef_eigensystem(single_ion, bfactors)
-    cef_energies .-= minimum(cef_energies)
+    cef_levels = cef_energies(single_ion, bfactors)
+    cef_levels .-= minimum(cef_levels)
     convfac = begin
         if isequal(units, "SI")
             NA * 1.602176487*1e-22  # NA * muB
@@ -456,5 +456,5 @@ function cef_entropy_speclevels(single_ion::mag_ion, bfactors::DataFrame;
             NA * 1.602176487*1e-22  # NA * muB
         end
     end
-    calc_entropy(Ep=cef_energies[levels], T=T) * convfac * kB
+    calc_entropy(Ep=cef_levels[levels], T=T) * convfac * kB
 end

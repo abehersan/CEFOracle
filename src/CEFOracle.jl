@@ -24,6 +24,7 @@ export get_blm!, get_alm!
 
 
 include("./cef_matrix.jl")
+export cef_hamiltonian, cef_wavefunctions, cef_energies
 export cef_eigensystem, spin_operators
 export cef_eigensystem_multisite, cef_site
 
