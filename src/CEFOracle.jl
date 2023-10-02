@@ -6,7 +6,6 @@ using LinearAlgebra
 using StaticArrays
 using Statistics
 using OffsetArrays
-using SparseArrays
 
 
 include("./single_ion.jl")
@@ -26,18 +25,18 @@ export get_blm!, get_alm!
 include("./cef_matrix.jl")
 export cef_hamiltonian, cef_wavefunctions, cef_energies
 export cef_eigensystem, spin_operators
-export cef_eigensystem_multisite, cef_site
+# export cef_eigensystem_multisite, cef_site
 
 
 include("./mag_properties.jl")
-export cef_magnetization_crystal, cef_magnetization_powder, cef_magnetization_multisite
-export cef_susceptibility_crystal, cef_susceptibility_powder, cef_susceptibility_multisite
+export cef_magnetization_crystal, cef_magnetization_powder #, cef_magnetization_multisite
+export cef_susceptibility_crystal, cef_susceptibility_powder #, cef_susceptibility_multisite
 export cef_heatcapacity, cef_heatcapacity_speclevels
 export cef_entropy, cef_entropy_speclevels
 
 
 include("./neutron_xsection.jl")
-export cef_neutronxsection_crystal, cef_neutronxsection_powder, cef_neutronxsection_multisite
+export cef_neutronxsection_crystal, cef_neutronxsection_powder #, cef_neutronxsection_multisite
 export TAS_resfunc, gaussian, lorentz
 
 

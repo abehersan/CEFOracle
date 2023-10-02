@@ -6,13 +6,7 @@ parameters and an applied magnetic field (external).
 Hamiltonian -> H = H_CEF + H_Zeeman
 """
 
-"""
-    cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
 
-Calculate explicit CEF matrix given a magnetic ion `single_ion`,
-a `DataFrame` of Stevens parameters in `bfactors` and an optional external
-magnetic field `B` in units of Tesla.
-"""
 function cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame;
                         B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
     J = single_ion.J
@@ -25,43 +19,20 @@ function cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame;
 end
 
 
-"""
-    cef_wavefunctions(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
-
-Calculate explicit CEF eigenvectors given a magnetic ion `single_ion`,
-a `DataFrame` of Stevens parameters in `bfactors` and an optional external
-magnetic field `B` in units of Tesla.
-"""
 function cef_wavefunctions(single_ion::mag_ion, bfactors::DataFrame;
                           B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
     eigvecs(cef_hamiltonian(single_ion, bfactors, B=B))
 end
 
 
-"""
-    cef_energies(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
-
-Calculate CEF levels (eigenvalues of the CEF matrix)
-given a magnetic ion `single_ion`, a `DataFrame` of Stevens parameters in
-`bfactors` and an optional external magnetic field `B` in units of Tesla.
-"""
 function cef_energies(single_ion::mag_ion, bfactors::DataFrame;
                      B::Vector{<:Real}=zeros(Float64, 3))::Vector{Float64}
     eigvals(cef_hamiltonian(single_ion, bfactors, B=B))
 end
 
 
-"""
-    cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(3), verbose=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
-
-Returns a 3-tuple that contains the full Hamiltonian matrix, its eigenvalues and eigenvectors.
-
-`B = [Bx, By, Bz]` are the values of the applied magnetic field defined in
-units of Tesla.
-"""
 function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
-                        B::Vector{<:Real}=zeros(Float64, 3), verbose::Bool=false
-                        )::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
+                        B::Vector{<:Real}=zeros(Float64, 3))::Nothing
     J = single_ion.J
     g = single_ion.g
     if iszero(B)
@@ -69,83 +40,27 @@ function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
     else
         cef_matrix = H_cef(J, bfactors) + H_zeeman(J, g, B)
     end
-    # @assert is_hermitian(cef_matrix) # disabled for performance
+    @assert is_hermitian(cef_matrix)
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
-    if verbose
-        println("---CEF matrix diagonalization results---")
-        println("External field in [Tesla]")
-        println("[Bx, By, Bz] = $B")
-        println("CEF parameters in [meV]:")
-        display(bfactors)
-        println("CEF matrix, basis vectors |J, -MJ>, ... |J, MJ>")
-        display(sparse(cef_matrix))
-        println("CEF-split single-ion energy levels in [meV]:")
-        display(cef_energies .- minimum(cef_energies))
-    end
-    (cef_matrix, cef_energies, cef_wavefunctions)
+    println("---CEF matrix diagonalization results---")
+    println("External field in [Tesla]")
+    println("[Bx, By, Bz] = $B")
+    println("CEF parameters in [meV]:")
+    println(bfactors)
+    println()
+    println("CEF matrix, basis vectors |J, -MJ>, ... |J, MJ>")
+    display(cef_matrix)
+    println()
+    println("CEF wavefunctions, basis vectors |J, -MJ>, ... |J, MJ>")
+    display(cef_wavefunctions)
+    println()
+    println("CEF-split single-ion energy levels in [meV]:")
+    display(cef_energies .- minimum(cef_energies))
+    println()
 end
 
 
-"""
-    cef_eigensystem_multisite(sites::AbstractVector; verbose=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
-
-Calculate and diagonalize the CEF matrix for multiple inequivalent CEF environments.
-`sites` is a vector of `cef_site` structs.
-
-Limitation: all sites must host the same magnetic ion species.
-"""
-function cef_eigensystem_multisite(sites::AbstractVector; verbose::Bool=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
-    J = sites[1].single_ion.J # only multisites of the same ion are supported
-    m_dim = Int(2*J+1)
-    cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
-    for site in sites
-        cef_matrix += (H_cef(site.single_ion.J, site.bfactors) +
-                       H_zeeman(site.single_ion.J, site.single_ion.g, site.B)) *
-                      site.site_ratio
-    end
-    cef_wavefunctions = eigvecs(cef_matrix)
-    cef_energies = eigvals(cef_matrix)
-    if verbose
-        println("---Multisite CEF matrix diagonalization results---")
-        for (i, site) in enumerate(sites)
-            println("External field in Tesla for site #$i")
-            println("[Bx, By, Bz] = $(site.B)")
-        end
-        println("CEF matrix, basis vectors are |J, -MJ>, ... |J, MJ>")
-        display(cef_matrix)
-        println("CEF-split single-ion energy levels in meV:")
-        display(cef_energies .- minimum(cef_energies))
-    end
-    (cef_matrix, cef_energies, cef_wavefunctions)
-end
-
-
-"""
-    cef_site(single_ion::mag_ion, bfactors::DataFrame, site_ratio::Real=1.0, B::Union{Vector{<:Real}, Real}=[0,0,0])
-
-Define a `cef_site` for a magnetic ion in an environment where multiple ions
-have different site-symmetries.
-
-`site_ratio` of all considered sites must add to one.
-
-`B` can either be a vector (mostly for single-crystal sample calculations),
-or a real number (used for polycrystals).
-"""
-Base.@kwdef mutable struct cef_site
-    single_ion::mag_ion
-    bfactors::DataFrame
-    site_ratio::Real = 1.0
-    B::Union{Vector{<:Real}, Real} = zeros(Float64, 3)
-end
-
-
-"""
-    H_cef(J::Float64, bfactors::DataFrame)::Matrix{ComplexF64}
-
-Compute the full CEF matrix given a set of CEF parameters `bfactors` and a
-total angular momentum `J`
-"""
 function H_cef(J::Float64, bfactors::DataFrame)::Matrix{ComplexF64}
     m_dim = Int(2*J+1)
     cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
@@ -156,13 +71,6 @@ function H_cef(J::Float64, bfactors::DataFrame)::Matrix{ComplexF64}
 end
 
 
-"""
-    H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})::Matrix{ComplexF64}
-
-Zeeman Hamiltonian given a total angular momentum quantum number `J`,
-an effective and isotropic g-factor `g` and a vector containing the applied
-magnetic field in Tesla `external_field`.
-"""
 function H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})::Matrix{ComplexF64}
     Bx, By, Bz = external_field
     BxJx = spin_operators(J, "x") * Bx
@@ -172,14 +80,6 @@ function H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})::Matri
 end
 
 
-"""
-    H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})
-
-Zeeman Hamiltonian given a total angular momentum quantum number `J`,
-a vector with the componentes of the g-tensor in the eigenframe of the system
-`g = [gxx, gyy, gzz]` and a vector containing the applied magnetic field in
-Tesla `external_field`.
-"""
 function H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})::Matrix{ComplexF64}
     Bx, By, Bz = external_field
     gxx, gyy, gzz = g
