@@ -110,3 +110,35 @@ function cef_susceptibility_multisite(sites::AbstractVector, T::Real,
     end
     susceptibility_vector
 end
+
+
+"""
+    cef_neutronxsection_multisite(sites::AbstractVector; E::Float64=0.0, Q::Float64=0.0, T::Float64=2.0, R::Function=TAS_resfunc)
+
+Simulate the inelastic neutron x-section given a magnetic ion and crystal-field
+Hamiltonian.
+
+A custom resolution function is admitted and must have the following
+call signature:
+`resfunc(E, Epeak, width::Function(E))::Float64`
+`E` is is the energy where the intensity is being calculated,
+`Epeak` is is the energy of the actual CEF excitation and
+`width` is a function that returns the resolution (FWHM) evaluated at `E`.
+
+The form factor in the dipolar approximation is included in the calculation of
+the x-section.
+Implementation of eqns (2.42-2.43) of Furrer/Mesot/Strässle
+and eqn. (8.11) of Boothroyd.
+"""
+function cef_neutronxsection_multisite(sites::AbstractVector, E::Float64,
+                                      Q::Float64, T::Float64=2.0,
+                                      B::Float64=0.0, R::Function=TAS_resfunc
+                                      )::Float64
+    ins_xsection::Float64 = 0.0
+    for site in sites
+        ins_xsection += cef_neutronxsection_powder(site.single_ion, site.bfactors,
+                                                  E=E, Q=Q, T=T, B=0.0,
+                                                  R=R) * site.site_ratio
+    end
+    ins_xsection
+end

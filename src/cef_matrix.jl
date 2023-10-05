@@ -7,30 +7,6 @@ Hamiltonian -> H = H_CEF + H_Zeeman
 """
 
 
-function cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame;
-                        B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
-    J = single_ion.J
-    g = single_ion.g
-    if iszero(B)
-        return H_cef(J, bfactors)
-    else
-        return H_cef(J, bfactors) + H_zeeman(J, g, B)
-    end
-end
-
-
-function cef_wavefunctions(single_ion::mag_ion, bfactors::DataFrame;
-                          B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
-    eigvecs(cef_hamiltonian(single_ion, bfactors, B=B))
-end
-
-
-function cef_energies(single_ion::mag_ion, bfactors::DataFrame;
-                     B::Vector{<:Real}=zeros(Float64, 3))::Vector{Float64}
-    eigvals(cef_hamiltonian(single_ion, bfactors, B=B))
-end
-
-
 function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
                         B::Vector{<:Real}=zeros(Float64, 3))::Nothing
     J = single_ion.J
@@ -44,6 +20,10 @@ function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
     cef_wavefunctions = eigvecs(cef_matrix)
     cef_energies = eigvals(cef_matrix)
     println("---CEF matrix diagonalization results---")
+    println("Ion: $(single_ion.ion).")
+    println()
+    println("g-tensor: $(single_ion.g).")
+    println()
     println("External field in [Tesla]")
     println("[Bx, By, Bz] = $B")
     println("CEF parameters in [meV]:")
@@ -58,6 +38,18 @@ function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
     println("CEF-split single-ion energy levels in [meV]:")
     display(cef_energies .- minimum(cef_energies))
     println()
+end
+
+
+function cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame;
+                        B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
+    J = single_ion.J
+    g = single_ion.g
+    if iszero(B)
+        return H_cef(J, bfactors)
+    else
+        return H_cef(J, bfactors) + H_zeeman(J, g, B)
+    end
 end
 
 
@@ -90,12 +82,6 @@ function H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})
 end
 
 
-"""
-    spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
-
-Explicit matrix form of the spin operators for arbitrary total angular momentum
-quantum number `J`
-"""
 function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
     mJ = -J:1:J
     if isequal(a, "x")
@@ -122,16 +108,6 @@ function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
 end
 
 
-"""
-    ryabov_clm(l::Int, m::Int)::Float64
-
-Coefficients `clm` of formula (8) of Ryabov (2009)
-
-The Racah operators Otilde are related to the spherical tensors T^l_m via
-    Otilde^l_pm m = (pm 1)^(m) clm T^l_pm m,
-This function calculates clm given equations (2), (4) and the fact that
-    clm = alpha / (Nlm * Flm)
-"""
 function ryabov_clm(l::Int, m::Int)::Float64
     lmax = 13
     if l > lmax
@@ -174,17 +150,11 @@ function ryabov_clm(l::Int, m::Int)::Float64
 end
 
 
-"""
-    stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
-
-Calculate the explicit matrix form of the Stevens operator O^m_l
-Implementation of equation (21) of Ryabov (1999).
-"""
 function stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
     Jp = spin_operators(J, "+")
     Jm = spin_operators(J, "-")
     T = Jp^l # T^l_l
-    for qq in l-1:-1:abs(m) # Eqn (1 and 2) of Ryabov (1999), see Stoll EasySpin
+    for _ in l-1:-1:abs(m) # Eqn (1 and 2) of Ryabov (1999), see Stoll EasySpin
         T = Jm*T - T*Jm
     end
     # Construction of cosine and sine tesseral operators, Ryabov, Eq.(21)

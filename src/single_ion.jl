@@ -133,7 +133,6 @@ function single_ion(ion::String)
 end
 
 
-
 Base.@kwdef mutable struct mag_ion
     ion::String
     J::Float64

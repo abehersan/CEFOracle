@@ -9,10 +9,12 @@ Returns true if extended Stevens operators for J=7/2 are equal to the
 operators tabulated in the mcphase manual up to a numerical precision of 1e-7
 """
 function test_mcphase()
-    for l in [2, 4, 6], m in -l:1:l
-        @assert isapprox(CEFOracle.stevens_EO(7/2, l, m),
-                         CEFOracle.stevens_O(7/2, l, m),
-                         atol=1e-7)
+    for j in 0.5:0.5:7.5
+        for l in [2, 4, 6], m in -l:1:l
+            @assert isapprox(CEFOracle.stevens_EO(j, l, m),
+                            CEFOracle.stevens_O(j, l, m),
+                            atol=1e-7)
+        end
     end
     true
 end
@@ -60,7 +62,7 @@ end
 
 
 @testset "CEFOracle.jl" begin
-    # @test test_mcphase()
-    # @test wignerD_unitary()
+    @test test_mcphase()
+    @test wignerD_unitary()
     @test rotation_invariance_eigenvalues()
 end
