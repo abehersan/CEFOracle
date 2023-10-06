@@ -20,7 +20,7 @@ function calc_S_alphabeta(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
     S_alphabeta::Float64 = 0.0
     np = population_factor(Ep, T) # 2J+1 vector
     for i in eachindex(np), j in eachindex(np)
-        S_alphabeta += real(
+        S_alphabeta += abs(
             transition_matrix_element(n=Vp[:,i], operator=J_alpha,m=Vp[:,j]) *
             transition_matrix_element(n=Vp[:,j], operator=J_beta ,m=Vp[:,i]) *
             np[i] *
