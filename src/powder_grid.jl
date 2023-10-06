@@ -1,5 +1,5 @@
 function cart_coords(theta::Real, phi::Real, r::Real)::Vector{Float64}
-    r * [sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta)]
+    return r * [sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta)]
 end
 
 
@@ -14,7 +14,7 @@ function cart_coords(theta::Vector{Float64}, phi::Vector{Float64}, r::Vector{Flo
     for i in 1:ll
         xs[i], ys[i], zs[i] = cart_coords(theta[i], phi[i], r[i])
     end
-    (xs, ys, zs)
+    return (xs, ys, zs)
 end
 
 
@@ -95,10 +95,10 @@ end
 function SOPHE_xyzw(noct::Int, mphi::Real, gsize::Int, cphi::Bool)::Matrix{Float64}
     thetas, phis, ws = SOPHE_grid(noct, mphi, gsize, cphi)
     xs, ys, zs = cart_coords(thetas, phis, ones(length(thetas)))
-    [xs ys zs ws]
+    return [xs ys zs ws]
 end
 
 
 function columns(M)
-    (view(M, :, i) for i in 1:size(M, 2))
+    return (view(M, :, i) for i in 1:size(M, 2))
 end

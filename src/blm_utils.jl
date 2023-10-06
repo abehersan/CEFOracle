@@ -15,7 +15,7 @@ a DataFrame with equivalent information.
 function blm_dframe(blm_dict::Dict{String, <:Real})::DataFrame
     l, m = parse_blm(collect(keys(blm_dict)))
     bs = collect(values(blm_dict))
-    DataFrame("Blm"=>bs, "l"=>l, "m"=>m)
+    return DataFrame("Blm"=>bs, "l"=>l, "m"=>m)
 end
 
 
@@ -28,7 +28,7 @@ a DataFrame with equivalent information.
 function alm_dframe(alm_dict::Dict{String, <:Real})::DataFrame
     l, m = parse_blm(collect(keys(alm_dict)))
     bs = collect(values(alm_dict))
-    DataFrame("Alm"=>bs, "l"=>l, "m"=>m)
+    return DataFrame("Alm"=>bs, "l"=>l, "m"=>m)
 end
 
 
@@ -40,7 +40,7 @@ function parse_blm(b::String)::Tuple{Int, Int}
         l = parse(Int, b[2])
         m = parse(Int, b[end])
     end
-    l, m
+    return (l, m)
 end
 
 
@@ -52,7 +52,7 @@ function parse_blm(b_vec::Vector)::Tuple{Vector, Vector}
         push!(l_vec, l)
         push!(m_vec, m)
     end
-    l_vec, m_vec
+    return (l_vec, m_vec)
 end
 
 
@@ -72,7 +72,7 @@ function full_blm_dframe(bfactors::DataFrame)::DataFrame
         append!(bfactors_full,
             DataFrame("bfactors"=>Blm_fl, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
     end
-    bfactors_full
+    return bfactors_full
 end
 
 
@@ -109,7 +109,7 @@ function get_alm!(single_ion::mag_ion, bfactors::DataFrame)::DataFrame
         end
     end
     bfactors[!, :Alm] = alm
-    bfactors
+    return bfactors
 end
 
 
@@ -145,8 +145,10 @@ function get_blm!(single_ion::mag_ion, afactors::DataFrame)::DataFrame
         end
     end
     afactors[!, :Blm] = blm
-    afactors
+    return afactors
 end
+
+
 function norm_bfactors(blm::DataFrame)::Float64
     norm(blm[!, :Blm], 2)
 end

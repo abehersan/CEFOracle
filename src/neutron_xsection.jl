@@ -11,17 +11,18 @@ function dipolar_form_factor(ion::mag_ion, Q::Real)::Float64
     s = Q / 4pi
     ff_j0 = A_j0 * exp(-a_j0*s^2) + B_j0 * exp(-b_j0*s^2) + C_j0 * exp(-c_j0*s^2) + D_j0
     ff_j2 = A_j2*s^2 * exp(-a_j2*s^2) + B_j2*s^2 * exp(-b_j2*s^2) + C_j2*s^2 * exp(-c_j2*s^2) + D_j2*s^2
-    ff_j0 + ( (2-ion.g)/ion.g ) * ff_j2
+    return ff_j0 + ( (2-ion.g)/ion.g ) * ff_j2
 end
 
 
 function calc_S_alphabeta(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
                          R::Function, E::Float64, T::Float64,
                          J_alpha::Matrix{ComplexF64},
-                         J_beta::Matrix{ComplexF64})::Float64
+                         J_beta::Matrix{ComplexF64})
     if E < 0.0 # detailed balance
         return calc_S_alphabeta(Ep=Ep, Vp=Vp, R=R, E=abs(E), T=T,
-                    J_alpha=J_alpha, J_beta=J_beta) * exp(-abs(E)/(kB*T))
+                               J_alpha=J_alpha, J_beta=J_beta) *
+                               exp(-abs(E)/(kB*T))
     end
     S_alphabeta::Float64 = 0.0
     np = population_factor(Ep, T) # 2J+1 vector
@@ -32,7 +33,7 @@ function calc_S_alphabeta(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
             np[i] *
             R(E, Ep[j]-Ep[i]) # resolution as a function of energy transfer
     end
-    S_alphabeta
+    return S_alphabeta
 end
 
 
@@ -43,10 +44,9 @@ function cef_neutronxsection_crystal(single_ion::mag_ion, bfactors::DataFrame;
     cef_eigenvecs = cef_wavefunctions(single_ion, bfactors, B=B)
     cef_levels = cef_energies(single_ion, bfactors, B=B)
     cef_levels .-= minimum(cef_levels)
-    Jx = spin_operators(single_ion.J, "x")
-    Jy = spin_operators(single_ion.J, "y")
-    Jz = spin_operators(single_ion.J, "z")
-    spin_ops = [Jx, Jy, Jz]
+    spin_ops = [spin_operators(single_ion.J, "x"),
+                spin_operators(single_ion.J, "y"),
+                spin_operators(single_ion.J, "z")]
     S_alphabeta = zeros(Float64, (3, 3))
     for a in eachindex(spin_ops), b in eachindex(spin_ops)
         S_alphabeta[a, b] = calc_S_alphabeta(Ep=cef_levels,

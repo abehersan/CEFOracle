@@ -53,7 +53,6 @@ export cef_susceptibility_crystal!, cef_susceptibility_powder!
 
 
 include("./cef_entropy.jl")
-export cef_heatcapacity!, cef_heatcapacity_speclevels!
 export cef_entropy!, cef_entropy_speclevels!
 
 

@@ -18,26 +18,26 @@ function calc_chialphaalpha(; op_alpha::Matrix{ComplexF64},
     end
     t_avg_alpha = thermal_average(Ep, Vp, op_alpha, T)
     chi_alphaalpha -= (t_avg_alpha^2)/(kB*T)
-    chi_alphaalpha
+    return chi_alphaalpha
 end
 
 
 function calc_chi(g::Float64; spin_ops::Vector{Matrix{ComplexF64}},
                  Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, T::Real)::Float64
     chi_vec = [calc_chialphaalpha(op_alpha=op, Ep=Ep, Vp=Vp, T=T) for op in spin_ops]
-    g^2 * norm(chi_vec)
+    return g^2 * norm(chi_vec)
 end
 
 
 function calc_chi(g::Vector{Float64}; spin_ops::Vector{Matrix{ComplexF64}},
                  Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, T::Real)::Float64
     chi_vec = [calc_chialphaalpha(op_alpha=op, Ep=Ep, Vp=Vp, T=T) for op in spin_ops]
-    norm(dot(g .^2, chi_vec))
+    return norm(dot(g .^2, chi_vec))
 end
 
 
 function cef_susceptibility_crystal!(single_ion::mag_ion, bfactors::DataFrame,
-                                    calc_grid::DataFrame; units::String="SI")
+                                    calc_grid::DataFrame; units::String="SI")::Nothing
     unit_factor = begin
         if isequal(units, "SI")
             4.062426*1e-7   # N_A * muB(erg/G) * muB(meV/G)
@@ -63,12 +63,13 @@ function cef_susceptibility_crystal!(single_ion::mag_ion, bfactors::DataFrame,
                             Ep=cef_energies, Vp=cef_wavefunctions, T=pnt.T) *
                             unit_factor
     end
+    return 
 end
 
 
 function cef_susceptibility_powder!(single_ion::mag_ion, bfactors::DataFrame,
                                    calc_grid::DataFrame; xyzw::Matrix{Float64},
-                                   units::String="SI")
+                                   units::String="SI")::Nothing
     unit_factor = begin
         if isequal(units, "SI")
             4.062426*1e-7   # N_A * muB(erg/G) * muB(meV/G)
@@ -97,4 +98,5 @@ function cef_susceptibility_powder!(single_ion::mag_ion, bfactors::DataFrame,
                              unit_factor * w for t in calc_grid.T]
     end
     calc_grid[!, calc_colsymb] = pavg_chi
+    return
 end

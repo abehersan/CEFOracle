@@ -14,7 +14,7 @@ Calculate the effective magnetic moment in units of Bohr's magneton via
 function effective_moment(single_ion::mag_ion)::Float64
     g = single_ion.g
     J = single_ion.J
-    g * sqrt(J*(J+1.0))
+    return g * sqrt(J*(J+1.0))
 end
 
 
@@ -24,12 +24,12 @@ function is_normalized(Vps::Matrix{ComplexF64})::Bool
         vec = Vps[:, v]
         @assert is_normalized(vec)
     end
-    true
+    return true
 end
 
 
 function is_normalized(v::Vector{ComplexF64})::Bool
-    isapprox(norm(v), 1, atol=eps())
+    return isapprox(norm(v), 1, atol=eps())
 end
 
 
@@ -38,14 +38,14 @@ function is_hermitian(A::Matrix{<:Number})::Bool
     if n != m
         return false
     end
-    isapprox(A, adjoint(A), atol=eps())
+    return isapprox(A, adjoint(A), atol=eps())
 end
 
 
 function is_unitary(A::Matrix{<:Number})::Bool
     isapprox(A * A', I, atol=eps()) &&
     isapprox(A' * A, I, atol=eps()) &&
-    isapprox(det(A).re, 1.0)
+    return isapprox(det(A).re, 1.0)
 end
 
 
@@ -54,4 +54,5 @@ function divide_center_element!(A::Matrix{<:Number}, val::Number)::Matrix
     center_row = div(m, 2) + 1
     center_col = div(n, 2) + 1
     A[center_row, center_col] /= val
+    return A
 end

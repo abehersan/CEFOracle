@@ -1,19 +1,19 @@
 function calc_magmom(g::Float64; spin_ops::Vector{Matrix{ComplexF64}},
                     Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, T::Real)::Float64
     spin_expval = [thermal_average(Ep, Vp, op, T) for op in spin_ops]
-    g * norm(spin_expval)
+    return g * norm(spin_expval)
 end
 
 
 function calc_magmom(g::Vector{Float64}; spin_ops::Vector{Matrix{ComplexF64}},
                     Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, T::Real)::Float64
     spin_expval = [thermal_average(Ep, Vp, op, T) for op in spin_ops]
-    norm(dot(g, spin_expval))
+    return norm(dot(g, spin_expval))
 end
 
 
 function cef_magneticmoment_crystal!(single_ion::mag_ion, bfactors::DataFrame,
-                                   calc_grid::DataFrame; units::String="SI")
+                                   calc_grid::DataFrame; units::String="SI")::Nothing
     unit_factor = begin
         if isequal(units, "SI")
             5.5849397           # NA * muB  [J/T/mol]
@@ -45,13 +45,13 @@ function cef_magneticmoment_crystal!(single_ion::mag_ion, bfactors::DataFrame,
                                 unit_factor
         end
     end
-    calc_grid
+    return
 end
 
 
 function cef_magneticmoment_powder!(single_ion::mag_ion, bfactors::DataFrame,
                                    calc_grid::DataFrame; xyzw::Matrix{Float64},
-                                   units::String="SI")
+                                   units::String="SI")::Nothing
     unit_factor = begin
         if isequal(units, "SI")
             5.5849397           # NA * muB  [J/T/mol]
@@ -90,5 +90,5 @@ function cef_magneticmoment_powder!(single_ion::mag_ion, bfactors::DataFrame,
             pnt[calc_colsymb] = pnt_avg
         end
     end
-    calc_grid
+    return
 end

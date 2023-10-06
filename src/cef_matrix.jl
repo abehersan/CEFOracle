@@ -38,6 +38,7 @@ function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
     println("CEF-split single-ion energy levels in [meV]:")
     display(cef_energies .- minimum(cef_energies))
     println()
+    return 
 end
 
 
@@ -59,7 +60,7 @@ function H_cef(J::Float64, bfactors::DataFrame)::Matrix{ComplexF64}
     for row in eachrow(bfactors)
         cef_matrix += row.Blm * stevens_EO(J, row.l, row.m)
     end
-    cef_matrix
+    return cef_matrix
 end
 
 
@@ -68,7 +69,7 @@ function H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})::Matri
     BxJx = spin_operators(J, "x") * Bx
     ByJy = spin_operators(J, "y") * By
     BzJz = spin_operators(J, "z") * Bz
-    (-1.0 * g * muB) * (BxJx + ByJy + BzJz)
+    return (-1.0 * g * muB) * (BxJx + ByJy + BzJz)
 end
 
 
@@ -78,7 +79,7 @@ function H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})
     gxxBxJx = spin_operators(J, "x") * (gxx * Bx)
     gyyByJy = spin_operators(J, "y") * (gyy * By)
     gzzBzJz = spin_operators(J, "z") * (gzz * Bz)
-    (-1.0 * muB) * (gxxBxJx + gyyByJy + gzzBzJz)
+    return (-1.0 * muB) * (gxxBxJx + gyyByJy + gzzBzJz)
 end
 
 
@@ -90,20 +91,25 @@ function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
         Jp = diagm(1=>jp_eigval[1:end-1])
         Jm = diagm(-1=>jm_eigval[2:end])
         Jx = (Jp + Jm)/2.0
+        return Jx
     elseif isequal(a, "y")
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
         Jp = diagm(1=>jp_eigval[1:end-1])
         Jm = diagm(-1=>jm_eigval[2:end])
         Jy = (Jp - Jm)/2.0im
+        return Jy
     elseif isequal(a, "z")
         Jz = diagm(mJ)
+        return Jz
     elseif isequal(a, "+")
         jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
         Jp = diagm(1=>jp_eigval[1:end-1])
+        return Jp
     elseif isequal(a, "-")
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
         Jm = diagm(-1=>jm_eigval[2:end])
+        return Jm
     end
 end
 
@@ -146,7 +152,7 @@ function ryabov_clm(l::Int, m::Int)::Float64
         end
     end
     clm = alpha/(Flm) # Ryabov (1999) Eq.(22) with Nlm set to 1
-    clm
+    return clm
 end
 
 
@@ -164,5 +170,5 @@ function stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
     else
         Op = clm/2im * (T - adjoint(T))
     end
-    Op
+    return Op
 end
