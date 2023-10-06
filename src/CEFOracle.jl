@@ -56,8 +56,8 @@ include("./cef_entropy.jl")
 export cef_entropy!, cef_entropy_speclevels!
 
 
-include("./neutron_xsection.jl")
-export cef_neutronxsection_crystal, cef_neutronxsection_powder
+include("./cef_neutron_xsection.jl")
+export cef_neutronxsection_crystal!, cef_neutronxsection_powder!
 export TAS_resfunc, gaussian, lorentz
 
 

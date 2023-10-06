@@ -1,11 +1,4 @@
 """
-utils.jl
-
-Miscelaneous utility functions for internal use
-"""
-
-
-"""
     effective_moment(single_ion::mag_ion)::Float64
 
 Calculate the effective magnetic moment in units of Bohr's magneton via

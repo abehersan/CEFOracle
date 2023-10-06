@@ -9,23 +9,17 @@ Hamiltonian -> H = H_CEF + H_Zeeman
 
 function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
                         B::Vector{<:Real}=zeros(Float64, 3))::Nothing
-    J = single_ion.J
-    g = single_ion.g
-    if iszero(B)
-        cef_matrix = H_cef(J, bfactors)
-    else
-        cef_matrix = H_cef(J, bfactors) + H_zeeman(J, g, B)
-    end
+    cef_matrix = cef_hamiltonian(single_ion, bfactors, B=B)
     @assert is_hermitian(cef_matrix)
-    cef_wavefunctions = eigvecs(cef_matrix)
-    cef_energies = eigvals(cef_matrix)
+    cef_energies, cef_wavefunctions = eigen(cef_matrix)
     println("---CEF matrix diagonalization results---")
+    println()
     println("Ion: $(single_ion.ion).")
     println()
     println("g-tensor: $(single_ion.g).")
     println()
-    println("External field in [Tesla]")
-    println("[Bx, By, Bz] = $B")
+    println("External field in [Tesla]: [Bx, By, Bz] = $B")
+    println()
     println("CEF parameters in [meV]:")
     println(bfactors)
     println()
