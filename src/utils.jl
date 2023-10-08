@@ -22,7 +22,7 @@ end
 
 
 function is_normalized(v::Vector{ComplexF64})::Bool
-    return isapprox(norm(v), 1, atol=eps())
+    return isapprox(norm(v), 1, atol=PREC)
 end
 
 
@@ -31,14 +31,14 @@ function is_hermitian(A::Matrix{<:Number})::Bool
     if n != m
         return false
     end
-    return isapprox(A, adjoint(A), atol=eps())
+    return isapprox(A, adjoint(A), atol=PREC)
 end
 
 
 function is_unitary(A::Matrix{<:Number})::Bool
-    isapprox(A * A', I, atol=eps()) &&
-    isapprox(A' * A, I, atol=eps()) &&
-    return isapprox(det(A).re, 1.0)
+    isapprox(A * A', I, atol=PREC) &&
+    isapprox(A' * A, I, atol=PREC) &&
+    return isapprox(det(A).re, 1.0, atol=PREC)
 end
 
 

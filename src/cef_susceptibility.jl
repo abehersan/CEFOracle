@@ -7,7 +7,7 @@ function calc_chialphaalpha(; op_alpha::Matrix{ComplexF64},
         m_element_alpha = transition_matrix_element(n=Vp[:,p],
                                                    operator=op_alpha,
                                                    m=Vp[:,pp])
-        if isapprox(ep, epp; atol=eps(Float64))
+        if isapprox(ep, epp; atol=PREC)
             m_element = m_element_alpha*conj(m_element_alpha)*np_all[p]/(kB*T)
             chi_alphaalpha += m_element
         else
@@ -16,7 +16,7 @@ function calc_chialphaalpha(; op_alpha::Matrix{ComplexF64},
             chi_alphaalpha += m_element
         end
     end
-    t_avg_alpha = thermal_average(Ep, Vp, op_alpha, T)
+    t_avg_alpha = thermal_average(Ep=Ep, Vp=Vp, operator=op_alpha, T=T)
     chi_alphaalpha -= (t_avg_alpha^2)/(kB*T)
     return chi_alphaalpha
 end
@@ -49,8 +49,7 @@ function cef_susceptibility_crystal!(single_ion::mag_ion, bfactors::DataFrame,
             @error "Units $units not understood. Use one of either 'SI', 'CGS' or 'ATOMIC'"
         end
     end
-    calc_colsymb = Symbol("Chi_"*units)
-    calc_grid[!, calc_colsymb] .= 0.0
+    calc_grid[!, :CALC] .= 0.0
     spin_ops = [spin_operators(single_ion.J, "x"),
                 spin_operators(single_ion.J, "y"),
                 spin_operators(single_ion.J, "z")]
@@ -59,11 +58,11 @@ function cef_susceptibility_crystal!(single_ion::mag_ion, bfactors::DataFrame,
     spin_proj = spin_ops .* (ext_field / norm(ext_field))
     cef_energies, cef_wavefunctions = eigen(cef_hamiltonian(single_ion, bfactors))
     for pnt in eachrow(calc_grid)
-        pnt[calc_colsymb] = calc_chi(single_ion.g, spin_ops=spin_proj,
+        pnt[:CALC] = calc_chi(single_ion.g, spin_ops=spin_proj,
                             Ep=cef_energies, Vp=cef_wavefunctions, T=pnt.T) *
                             unit_factor
     end
-    return 
+    return
 end
 
 

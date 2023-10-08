@@ -2,10 +2,14 @@ module CEFOracle
 
 
 using DataFrames
+using DataFramesMeta
 using LinearAlgebra
 using StaticArrays
 using Statistics
 using OffsetArrays
+
+
+const PREC::Float64 = 1.0e-7
 
 
 include("./single_ion.jl")
@@ -56,7 +60,7 @@ include("./cef_entropy.jl")
 export cef_entropy!, cef_entropy_speclevels!
 
 
-include("./cef_neutron_xsection.jl")
+include("./cef_neutronxsection.jl")
 export cef_neutronxsection_crystal!, cef_neutronxsection_powder!
 export TAS_resfunc, gaussian, lorentz
 

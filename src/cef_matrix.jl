@@ -12,6 +12,7 @@ function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
     cef_matrix = cef_hamiltonian(single_ion, bfactors, B=B)
     @assert is_hermitian(cef_matrix)
     cef_energies, cef_wavefunctions = eigen(cef_matrix)
+    println()
     println("---CEF matrix diagonalization results---")
     println()
     println("Ion: $(single_ion.ion).")
@@ -32,7 +33,7 @@ function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
     println("CEF-split single-ion energy levels in [meV]:")
     display(cef_energies .- minimum(cef_energies))
     println()
-    return 
+    return
 end
 
 
@@ -51,8 +52,8 @@ end
 function H_cef(J::Float64, bfactors::DataFrame)::Matrix{ComplexF64}
     m_dim = Int(2*J+1)
     cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
-    for row in eachrow(bfactors)
-        cef_matrix += row.Blm * stevens_EO(J, row.l, row.m)
+    @eachrow! bfactors begin
+        cef_matrix += :Blm * stevens_EO(J, :l, :m)
     end
     return cef_matrix
 end

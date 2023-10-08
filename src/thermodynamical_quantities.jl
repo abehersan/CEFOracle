@@ -16,16 +16,16 @@ function partition_function(Ep::Vector{Float64}, T::Real)::Float64
 end
 
 
-function transition_matrix_element(; n::Vector{ComplexF64},
-                                  m::Vector{ComplexF64},
-                                  operator::Matrix{ComplexF64})::ComplexF64
+function transition_matrix_element(; operator::Matrix{ComplexF64},
+                                  n::Vector{ComplexF64},
+                                  m::Vector{ComplexF64})::ComplexF64
     return adjoint(n)*operator*m
 end
 
 
-function thermal_average(Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
+function thermal_average(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
                         operator::Matrix{ComplexF64}, T::Real)::Float64
-    matrix_elements = zeros(Float64, length(Ep))
+    matrix_elements = Vector{Float64}(undef, length(Ep))
     for p in eachindex(Ep)
         matrix_elements[p] = abs(transition_matrix_element(n=Vp[:,p],
                                                       operator=operator,

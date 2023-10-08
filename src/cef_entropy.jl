@@ -2,13 +2,13 @@ function calc_heatcap(; Ep::Vector{Float64}, T::Real)::Float64
     np = population_factor(Ep, T)
     heatcap = sum((Ep/(kB*T)).^2 .* np)
     heatcap -= sum((Ep/(kB*T).*np).^2)
-    return heatcap
+    return heatcap * kB
 end
 
 
 function calc_entropy(; Ep::Vector{Float64}, T::Real)::Float64
     Z = partition_function(Ep, T)
-    return log2(Z) - log2(partition_function(Ep, 1e-3))
+    return (log2(Z) - log2(partition_function(Ep, 1e-3))) * kB
 end
 
 
@@ -23,10 +23,8 @@ function cef_entropy!(single_ion::mag_ion, bfactors::DataFrame,
     end
     cef_levels = eigvals(cef_hamiltonian(single_ion, bfactors))
     cef_levels .-= minimum(cef_levels)
-    calc_colC = Symbol("Cp_"*units)
-    calc_colS = Symbol("S_"*units)
-    calc_grid[!, calc_colC] = [calc_heatcap(Ep=cef_levels, T=pnt.T)*convfac*kB for pnt in eachrow(calc_grid)]
-    calc_grid[!, calc_colS] = [calc_entropy(Ep=cef_levels, T=pnt.T)*convfac*kB for pnt in eachrow(calc_grid)]
+    calc_grid[!, :CP_CALC] = [calc_heatcap(Ep=cef_levels, T=t)*convfac for t in calc_grid.T]
+    calc_grid[!, :S_CALC]  = [calc_entropy(Ep=cef_levels, T=t)*convfac for t in calc_grid.T]
     return
 end
 
@@ -45,9 +43,7 @@ function cef_entropy_speclevels!(single_ion::mag_ion, bfactors::DataFrame,
     end
     cef_levels = eigvals(cef_hamiltonian(single_ion, bfactors))
     cef_levels .-= minimum(cef_levels)
-    calc_colC = Symbol("Cp_"*units)
-    calc_colS = Symbol("S_"*units)
-    calc_grid[!, calc_colC] = [calc_heatcap(Ep=cef_levels[levels], T=pnt.T)*convfac*kB for pnt in eachrow(calc_grid)]
-    calc_grid[!, calc_colS] = [calc_entropy(Ep=cef_levels[levels], T=pnt.T)*convfac*kB for pnt in eachrow(calc_grid)]
+    calc_grid[!, :CP_CALC] = [calc_heatcap(Ep=cef_levels[levels], T=t)*convfac for t in calc_grid.T]
+    calc_grid[!, :S_CALC]  = [calc_entropy(Ep=cef_levels[levels], T=t)*convfac for t in calc_grid.T]
     return
 end
