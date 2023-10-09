@@ -45,7 +45,8 @@ function cef_neutronxsection_crystal!(single_ion::mag_ion, bfactors::DataFrame,
                                     resfunc::Function=TAS_resfunc)::Nothing
     f_row = first(calc_grid)
     ext_field = [f_row.Bx, f_row.By, f_row.Bz]
-    cef_energies, cef_wavefunctions = eigen(cef_hamiltonian(single_ion, bfactors, B=ext_field))
+    E, V = eigen(cef_hamiltonian(single_ion, bfactors, B=ext_field))
+    E .-= minimum(E)
     spin_ops = [spin_operators(single_ion.J, "x"),
                 spin_operators(single_ion.J, "y"),
                 spin_operators(single_ion.J, "z")]
@@ -56,13 +57,12 @@ function cef_neutronxsection_crystal!(single_ion::mag_ion, bfactors::DataFrame,
         ffactor_term = abs(dipolar_formfactor(single_ion, norm(Q_cart)))^2
         S_alphabeta = Matrix{Float64}(undef, (3, 3))
         for a in eachindex(spin_ops), b in eachindex(spin_ops)
-            S_alphabeta[a, b] = calc_Salphabeta(:EN, :T, Ep=cef_energies,
-                                                Vp=cef_wavefunctions, R=resfunc,
+            S_alphabeta[a, b] = calc_Salphabeta(:EN, :T, Ep=E, Vp=V, R=resfunc,
                                                 J_alpha=spin_ops[a],
                                                 J_beta=spin_ops[b])
         end
         :I_CALC = ffactor_term * muB^2 * norm(single_ion.g)^2 *
-                abs(sum(pol_mat .* S_alphabeta))
+                  abs(sum(pol_mat .* S_alphabeta))
     end
     return
 end
@@ -71,7 +71,8 @@ end
 function cef_neutronxsection_powder!(single_ion::mag_ion, bfactors::DataFrame,
                                     calc_grid::DataFrame;
                                     resfunc::Function=TAS_resfunc)::Nothing
-    cef_energies, cef_wavefunctions = eigen(cef_hamiltonian(single_ion, bfactors))
+    E, V = eigen(cef_hamiltonian(single_ion, bfactors))
+    E .-= minimum(E)
     spin_ops = [spin_operators(single_ion.J, "x"),
                 spin_operators(single_ion.J, "y"),
                 spin_operators(single_ion.J, "z")]
@@ -80,13 +81,12 @@ function cef_neutronxsection_powder!(single_ion::mag_ion, bfactors::DataFrame,
         ffactor_term = abs(dipolar_formfactor(single_ion, :Q))^2
         S_alphabeta = Matrix{Float64}(undef, (3, 3))
         for a in eachindex(spin_ops), b in eachindex(spin_ops)
-            S_alphabeta[a, b] = calc_Salphabeta(:EN, :T, Ep=cef_energies,
-                                                Vp=cef_wavefunctions, R=resfunc,
+            S_alphabeta[a, b] = calc_Salphabeta(:EN, :T, Ep=E, Vp=V, R=resfunc,
                                                 J_alpha=spin_ops[a],
                                                 J_beta=spin_ops[b])
         end
         :I_CALC = ffactor_term * muB^2 * norm(single_ion.g)^2 *
-                2.0/3.0 * sum(S_alphabeta)
+                  2.0/3.0 * sum(S_alphabeta)
     end
     return
 end

@@ -27,7 +27,7 @@ function thermal_average(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
                         operator::Matrix{ComplexF64}, T::Real)::Float64
     matrix_elements = Vector{Float64}(undef, length(Ep))
     for p in eachindex(Ep)
-        matrix_elements[p] = abs(transition_matrix_element(n=Vp[:,p],
+        matrix_elements[p] = real(transition_matrix_element(n=Vp[:,p],
                                                       operator=operator,
                                                       m=Vp[:,p]))
     end

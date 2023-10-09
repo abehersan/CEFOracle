@@ -32,7 +32,7 @@ end
 function calc_chi(g::Vector{Float64}; spin_ops::Vector{Matrix{ComplexF64}},
                  Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, T::Real)::Float64
     chi_vec = [calc_chialphaalpha(op_alpha=op, Ep=Ep, Vp=Vp, T=T) for op in spin_ops]
-    return norm(dot(g .^2, chi_vec))
+    return norm((g .^2 .* chi_vec))
 end
 
 
@@ -49,18 +49,18 @@ function cef_susceptibility_crystal!(single_ion::mag_ion, bfactors::DataFrame,
             @error "Units $units not understood. Use one of either 'SI', 'CGS' or 'ATOMIC'"
         end
     end
-    calc_grid[!, :CALC] .= 0.0
     spin_ops = [spin_operators(single_ion.J, "x"),
                 spin_operators(single_ion.J, "y"),
                 spin_operators(single_ion.J, "z")]
     f_row = first(calc_grid)
-    ext_field = [f_row.Bx, f_row.By, f_row.Bz]
-    spin_proj = spin_ops .* (ext_field / norm(ext_field))
-    cef_energies, cef_wavefunctions = eigen(cef_hamiltonian(single_ion, bfactors))
-    for pnt in eachrow(calc_grid)
-        pnt[:CALC] = calc_chi(single_ion.g, spin_ops=spin_proj,
-                            Ep=cef_energies, Vp=cef_wavefunctions, T=pnt.T) *
-                            unit_factor
+    B_field = [f_row.Bx, f_row.By, f_row.Bz]
+    spin_proj = spin_ops .* (B_field / norm(B_field))
+    E, V = eigen(cef_hamiltonian(single_ion, bfactors))
+    E .-= minimum(E)
+    @eachrow! calc_grid begin
+        @newcol :CHI_CALC::Vector{Float64}
+        :CHI_CALC = calc_chi(single_ion.g, spin_ops=spin_proj, Ep=E, Vp=V, T=:T) *
+                    unit_factor
     end
     return
 end
@@ -80,22 +80,20 @@ function cef_susceptibility_powder!(single_ion::mag_ion, bfactors::DataFrame,
             @error "Units $units not understood. Use one of either 'SI', 'CGS' or 'ATOMIC'"
         end
     end
-    calc_colsymb = Symbol("Chi_"*units)
-    calc_grid[!, calc_colsymb] .= 0.0
     spin_ops = [spin_operators(single_ion.J, "x"),
                 spin_operators(single_ion.J, "y"),
                 spin_operators(single_ion.J, "z")]
     ext_field = first(calc_grid.B)
     pavg_chi = zeros(Float64, nrow(calc_grid))
-    for xyzw_vec in eachcol(xyzw)
+    for xyzw_vec in eachcol(xyzw')
         w = xyzw_vec[end]
         B_field = xyzw_vec[1:3] * ext_field
         spin_proj = spin_ops .* (B_field / norm(B_field))
-        cef_energies, cef_wavefunctions = eigen(cef_hamiltonian(single_ion, bfactors))
-        pavg_chi .+= [calc_chi(single_ion.g, spin_ops=spin_proj,
-                             Ep=cef_energies, Vp=cef_wavefunctions, T=t) *
-                             unit_factor * w for t in calc_grid.T]
+        E, V = eigen(cef_hamiltonian(single_ion, bfactors))
+        E .-= minimum(E)
+        pavg_chi .+= [calc_chi(single_ion.g, spin_ops=spin_proj, Ep=E, Vp=V, T=t) *
+                        unit_factor * w for t in calc_grid.T]
     end
-    calc_grid[!, calc_colsymb] = pavg_chi
+    calc_grid[!, :CHI_CALC] = pavg_chi
     return
 end
