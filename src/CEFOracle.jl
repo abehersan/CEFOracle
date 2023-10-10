@@ -46,6 +46,8 @@ export stevens_EO
 include("./thermodynamical_quantities.jl")
 export population_factor
 export partition_function
+export transition_matrix_element
+export thermal_average
 
 
 include("./cef_magnetization.jl")
