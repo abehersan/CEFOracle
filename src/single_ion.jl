@@ -13,7 +13,7 @@ the following data:
 
 - Total angular momentum quantum number J, isotropic Landé-factor gJ
 - Stevens geometric factors theta_l, alpha, beta, gamma
-- Expectation value of radial wave functions <r^l>, r2, r4, r6
+- Expectation value of radial wave functions <r^l>, l={2, 4, 6}
 - Dipolar magnetic form factor coefficients
 
 Currently only tripositive rare-earth ions are supported.
@@ -105,7 +105,7 @@ function single_ion(ion::String)
     )
     if isequal(ion, "Ce3")
         warn_mess = "Mag form factor coefficients for Ce3+ not defined.\n" *
-            "Using parameters for Ce2 instead."
+            "Using parameters for Ce2+ instead."
         @warn warn_mess
     end
     try

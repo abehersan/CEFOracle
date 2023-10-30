@@ -3,7 +3,9 @@ function cart_coords(theta::Real, phi::Real, r::Real)::Vector{Float64}
 end
 
 
-function cart_coords(theta::Vector{Float64}, phi::Vector{Float64}, r::Vector{Float64})::Tuple{Vector{Float64}, Vector{Float64}, Vector{Float64}}
+function cart_coords(theta::Vector{Float64},
+                    phi::Vector{Float64},
+                    r::Vector{Float64})::Tuple{Vector{Float64}, Vector{Float64}, Vector{Float64}}
     if length(theta) !== length(phi)
         @error "Theta and phi arrays do not have the same length $(length(theta))!==$(length(phi))"
     end

@@ -1,3 +1,8 @@
+function free_energy(Ep::Vector{Float64}, T::Real)::Float64
+    return kB*T*partition_function(Ep, T)
+end
+
+
 function calc_heatcap(; Ep::Vector{Float64}, T::Real)::Float64
     np = population_factor(Ep, T)
     heatcap = sum((Ep/(kB*T)).^2 .* np)
