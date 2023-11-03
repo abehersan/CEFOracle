@@ -22,40 +22,38 @@ and single-crystal samples.
 The single-ion Hamiltonian treated in `CEFOracle` is the following:
 
 ```math
-\hat{\mathcal{H}} = \sum_{l=2,4,6}\sum_{m=-l}^{l} B^m_l\hat{O}^m_l(J) - g_{J}\mu_{\rm{B}}\boldsymbol{B}\cdot\hat{\boldsymbol{I}}(J),
+\hat{\mathcal{H}} =
+\hat{\mathcal{H}}_{\text{CEF}} + \hat{\mathcal{H}}_{\text{Zeeman}} =
+\sum_{l\in\{2, 4, 6\}}\sum_{m=-l}^{l} B_{l}^{m}\hat{O}_{l}^{m}(J) +
+\mu_{\text{B}}\mathbf{B}^{T}\cdot\mathbf{g}\cdot\mathbf{\hat{I}}(J).
 ```
 
-where $\hat{O}^m_l(J)$ are the extended Stevens operators (ESOs). Values of
-$l \in [2, 4, 6]$ and $m \in [-l, l]$ are most relevant in spectroscopical
+where $`\hat{O}^m_l(J)`$ are the extended Stevens operators (ESOs). Values of
+$`l \in [2, 4, 6]`$ and $`m \in [-l, l]$ are most relevant in spectroscopical
 studies of real materials. The ESOs are given as a function of the total angular
 momentum quantum number $J$, see Ryabov (1999) and Rudowicz (2015).
 
 The Hamiltonian is given as a function of the  total-angular momentum matrices
-$\hat{I}_x, \hat{I}_y, \hat{I}_z$.
-And possibly an external magnetic field $\boldsymbol{B}=(B_x, B_y, B_z)$
+$`\hat{I}_x, \hat{I}_y, \hat{I}_z`$.
+And possibly an external magnetic field $`\boldsymbol{B}=(B_x, B_y, B_z)`$
 with components in units of Tesla.
 
 To use the module type the following in a Julia session:
+
 ```julia
 julia> ]
 pkg> add https://github.com/abehersan/CEFOracle/tree/main
 ```
 
 For a complete list of the functions afforded by the module and their
-signatures please consult the source files themselves or invoke
-the docstrings in the REPL via help mode. The following will, for example,
-print this README and list the functions exported by the module:
+signatures invoke the docstrings in the REPL via help mode.
+Running the command below witll print this README and list the
+functions exported by the module:
+
 ```julia
 julia> using CEFOracle
 julia> ? 
 help?> CEFOracle
-```
-
-Running the code below will print the documentation for the `cef_eigensystem`
-function for example:
-```julia
-julia> ? 
-help?> cef_eigensystem
 ```
 
 The formalism applied in the module follows from the following references:
