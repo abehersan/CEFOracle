@@ -29,14 +29,15 @@ The single-ion Hamiltonian treated in `CEFOracle` is the following:
 ```
 
 where $`\hat{O}^m_l(J)`$ are the extended Stevens operators (ESOs). Values of
-$`l \in [2, 4, 6]`$ and $`m \in [-l, l]$ are most relevant in spectroscopical
+$`l \in [2, 4, 6]`$ and $`m \in [-l, l]`$ are most relevant in spectroscopical
 studies of real materials. The ESOs are given as a function of the total angular
 momentum quantum number $J$, see Ryabov (1999) and Rudowicz (2015).
 
 The Hamiltonian is given as a function of the  total-angular momentum matrices
-$`\hat{I}_x, \hat{I}_y, \hat{I}_z`$.
+$\hat{I}_x, \hat{I}_y, \hat{I}_z$.
 And possibly an external magnetic field $`\boldsymbol{B}=(B_x, B_y, B_z)`$
-with components in units of Tesla.
+with components in units of Tesla. A generalized g-tensor can also be included
+in the calculations.
 
 To use the module type the following in a Julia session:
 
@@ -56,6 +57,8 @@ julia> ?
 help?> CEFOracle
 ```
 
+Further information and examples are located in the wiki of this repo.
+The wiki can be accessed by clicking the banner at the top of this README.
 The formalism applied in the module follows from the following references:
 
 - Bauer, E., & Rotter, M. (2010) *Magnetism of complex metallic alloys: Crystalline electric field effects.* In Properties and Applications of Complex Intermetallics.
