@@ -1,19 +1,12 @@
-"""
-single_ion.jl
-
-Define single-ion properties such as J, gJ and stevens multiplicative factors
-"""
-
-
-"""
+@doc raw"""
     single_ion(ion::String)
 
 Given a magnetic ion name, generate a `mag_ion` structure that contains
 the following data:
 
-- Total angular momentum quantum number J, Landé-factor gJ
-- Stevens' geometric factors theta_l, alpha, beta, gamma
-- Expectation value of radial wave functions <r^l>, r2, r4, r6
+- Total angular momentum quantum number J, isotropic Landé-factor gJ
+- Stevens geometric factors theta_l, alpha, beta, gamma
+- Expectation value of radial wave functions <r^l>, l={2, 4, 6}
 - Dipolar magnetic form factor coefficients
 
 Currently only tripositive rare-earth ions are supported.
@@ -105,18 +98,18 @@ function single_ion(ion::String)
     )
     if isequal(ion, "Ce3")
         warn_mess = "Mag form factor coefficients for Ce3+ not defined.\n" *
-            "Using parameters for Ce2 instead."
+            "Using parameters for Ce2+ instead."
         @warn warn_mess
     end
     try
-        J, gJ,
+        J, g,
         alpha, beta, gamma,
         r2, r4, r6,
         A_j0, a_j0, B_j0, b_j0, C_j0, c_j0, D_j0,
         A_j2, a_j2, B_j2, b_j2, C_j2, c_j2, D_j2 =
             mag_ground_state[ion]
         return mag_ion(
-            ion, J, gJ,
+            ion, J, g,
             [alpha, beta, gamma],
             [r2, r4, r6],
             [A_j0, a_j0, B_j0, b_j0, C_j0, c_j0, D_j0],
@@ -133,11 +126,10 @@ function single_ion(ion::String)
 end
 
 
-
 Base.@kwdef mutable struct mag_ion
     ion::String
     J::Float64
-    gJ::Float64
+    g::Union{Vector{<:Real}, Real}
     stevens_factors::Vector{Float64}
     rad_wavefunction::Vector{Float64}
     ff_coeff_j0::Vector{Float64}

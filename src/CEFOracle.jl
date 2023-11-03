@@ -2,11 +2,14 @@ module CEFOracle
 
 
 using DataFrames
+using DataFramesMeta
 using LinearAlgebra
 using StaticArrays
 using Statistics
 using OffsetArrays
-using SparseArrays
+
+
+const PREC::Float64 = 1.0e-7
 
 
 include("./single_ion.jl")
@@ -14,25 +17,53 @@ export single_ion, mag_ion
 
 
 include("./units.jl")
-export meV_per_K, mu0, muB, kB, NA, R
+export meV_per_K, mu0, muB, kB, NA, Rg
 
 
 include("./utils.jl")
-export effective_moment, blm_dframe, stevens_A
+export effective_moment
+export is_normalized, is_hermitian, is_unitary
+
+
+include("./blm_utils.jl")
+export blm_dframe, alm_dframe
+export get_blm!, get_alm!
+
+
+include("./powder_grid.jl")
+export cart_coords, columns
+export SOPHE_xyzw
+export SOPHE_grid
 
 
 include("./cef_matrix.jl")
-export cef_eigensystem, cef_eigensystem_multisite, cef_site
+export cef_hamiltonian
+export cef_eigensystem
+export spin_operators
+export stevens_EO
 
 
-include("./mag_properties.jl")
-export cef_magnetization_crystal, cef_magnetization_powder, cef_magnetization_multisite
-export cef_susceptibility_crystal, cef_susceptibility_powder, cef_susceptibility_multisite
-export cef_heatcapacity, cef_heatcapacity_speclevels
+include("./thermodynamical_quantities.jl")
+export population_factor
+export partition_function
+export transition_matrix_element
+export thermal_average
 
 
-include("./neutron_xsection.jl")
-export cef_neutronxsection_crystal, cef_neutronxsection_powder, cef_neutronxsection_multisite
+include("./cef_magnetization.jl")
+export cef_magneticmoment_crystal!, cef_magneticmoment_powder!
+
+
+include("./cef_susceptibility.jl")
+export cef_susceptibility_crystal!, cef_susceptibility_powder!
+
+
+include("./cef_entropy.jl")
+export cef_entropy!, cef_entropy_speclevels!
+
+
+include("./cef_neutronxsection.jl")
+export cef_neutronxsection_crystal!, cef_neutronxsection_powder!
 export TAS_resfunc, gaussian, lorentz
 
 
@@ -41,9 +72,9 @@ export stevens_O
 
 
 include("./cef_rot.jl")
-export rotate_blm, get_euler_angles, ZYZ_rotmatrix
+export rotate_blm
+export get_euler_angles
+export ZYZ_rotmatrix
 
-# include("./cef_fit.jl")
-# export cef_datasets, chi2_cef
 
 end

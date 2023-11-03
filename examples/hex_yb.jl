@@ -1,91 +1,60 @@
 """
-Reproduction of results from Rotter, Bauer paper, CEF model A
+Reproduction of results from the paper by Rotter and Bauer
 """
 
 
-using CEFOracle, LaTeXStrings, Plots
-gr()
+using CEFOracle
+using DataFrames
+using StatsPlots
 
 
-yb = single_ion("Yb3")
-bs_modelA = Dict("B20"=>0.5622, "B40"=>1.6087e-5, "B60"=>6.412e-7, "B66"=>-8.324e-6)
-bs_modelB = Dict("B20"=>-0.06364, "B40"=>2.713e-3, "B60"=>-5.5335e-6, "B66"=>-6.659e-5)
-bdf_A = blm_dframe(bs_modelA)
-bdf_B = blm_dframe(bs_modelB)
+ion = single_ion("Yb3")
+bfactors = blm_dframe(Dict("B20"=>0.5622, "B40"=>1.6087e-5,
+                           "B60"=>6.412e-7, "B66"=>-8.324e-6))
 
 
-"""
-calculate the inelastic neutron scattering x-section at different temperatures
-with model A, reproduces figure 7 of the paper
-"""
-es = LinRange(-12, 12, 150)
-temps = [10.0, 50.0, 200.0]
-ins_plot = plot(xlabel="Energy [meV]", ylabel="I(Q, E) [arb. units]")
-for t in temps
-    ins_xsection = [cef_neutronxsection_powder(yb, bdf_A, E=e, Q=2.55, T=t) for e in es]
-    plot!(es, ins_xsection, label="T=$t K")
+function yb_hexagonalcef()
+
+    """ INS X-section """
+    temps = [10.0, 50.0, 200.0]
+    ins_plot = plot(xlabel="Energy [meV]", ylabel="I(Q, E) [arb. units]")
+    for t in temps
+        calc_grid = DataFrame(T=t, Q=2.55, EN=range(-12,12,700))
+        cef_neutronxsection_powder!(ion, bfactors, calc_grid)
+        @df calc_grid plot!(ins_plot, :EN, :I_CALC, label="T=$t K")
+    end
+
+    """ Magnetic moment """
+    mag_plot = plot(xlabel="Magnetic Field [Tesla]", ylabel="Magnetic Moment [muB]")
+    calc_grid = DataFrame(T=1.5, Bx=0.0, By=0.0, Bz=0.0:0.5:12)
+    cef_magneticmoment_crystal!(ion, bfactors, calc_grid, units="ATOMIC")
+    @df calc_grid plot!(mag_plot, :Bz, :M_CALC, label="B parallel z")
+    calc_grid = DataFrame(T=1.5, Bx=0:0.5:12, By=0.0, Bz=0.0)
+    cef_magneticmoment_crystal!(ion, bfactors, calc_grid, units="ATOMIC")
+    @df calc_grid plot!(mag_plot, :Bx, :M_CALC, label="B parallel x")
+    ylims!(mag_plot, 0, 3.5)
+
+
+    """ Static susceptibility """
+    chi_plot = plot(xlabel="Temperature [K]", ylabel="1/chi [mol/cm^3]")
+    calc_grid_z = DataFrame(T=1.5:0.5:300, Bx=0.0, By=0.0, Bz=0.01)
+    cef_susceptibility_crystal!(ion, bfactors, calc_grid_z, units="CGS")
+    @df calc_grid_z plot!(chi_plot, :T, 1 ./ :CHI_CALC, label="B parallel z")
+    calc_grid_x = DataFrame(T=1.5:0.5:300, Bx=0.01, By=0.0, Bz=0.0)
+    cef_susceptibility_crystal!(ion, bfactors, calc_grid_x, units="CGS")
+    @df calc_grid_x plot!(chi_plot, :T, 1 ./ :CHI_CALC, label="B parallel x")
+    chi_powd = 1/3*calc_grid_z.CHI_CALC + 2/3*calc_grid_x.CHI_CALC
+    plot!(chi_plot, calc_grid_z.T, 1 ./ chi_powd, label="Powder")
+
+    """ Specific heat capacity and magnetic entropy """
+    s_plot = plot(xlabel="Temperature [K]", ylabel="S, Cp [J/mol/K]")
+    calc_grid = DataFrame(T=0.5:0.5:300)
+    cef_entropy!(ion, bfactors, calc_grid)
+    @df calc_grid plot!(s_plot, :T, :CP_CALC, label="Cp")
+    @df calc_grid plot!(s_plot, :T, :S_CALC, label="S")
+
+    plot(ins_plot, mag_plot, chi_plot, s_plot, layout=(2, 2))
 end
 
 
-"""
-calculate the Schottky specific heat capacity for both models
-reproduces figure 8 of the paper
-"""
-temps = LinRange(0.5, 300, 150)
-# cv_A = [cef_heatcapacity_speclevels(yb,bdf_A,T=t,1:6) for t in temps]
-# cv_B = [cef_heatcapacity_speclevels(yb,bdf_B,T=t,1:6) for t in temps]
-cv_A = [cef_heatcapacity(yb, bdf_A, T=t) for t in temps]
-cv_B = [cef_heatcapacity(yb, bdf_B, T=t) for t in temps]
-cv_plot = plot(
-            temps, [cv_A cv_B],
-            label=["A" "B"],
-            xlabel="Temperature [Kelvin]",
-            ylabel = "Cv [J/K/mol]"
-           )
-
-
-"""
-calculate the magnetic moment along an applied field's direction
-parallel and perpendicular to the crystallographic c-axis
-reproduces figure 11 of the paper
-"""
-T = 0.5
-fields = LinRange(0.0, 12, 150)
-mag_A_para = [cef_magnetization_crystal(yb,bdf_A,T=T,Bext=[b,0,0],units="ATOMIC") for b in fields]
-mag_A_perp = [cef_magnetization_crystal(yb,bdf_A,T=T,Bext=[0,0,b],units="ATOMIC") for b in fields]
-mag_B_para = [cef_magnetization_crystal(yb,bdf_B,T=T,Bext=[b,0,0],units="ATOMIC") for b in fields]
-mag_B_perp = [cef_magnetization_crystal(yb,bdf_B,T=T,Bext=[0,0,b],units="ATOMIC") for b in fields]
-# mag_A_powd = [cef_magnetization(yb,bdf_A,T,b,"atomic") for b in fields]
-# mag_B_powd = [cef_magnetization(yb,bdf_B,T,b,"atomic") for b in fields]
-mag_A_powd = @. 2/3 * mag_A_perp + 1/3 * mag_A_perp
-mag_B_powd = @. 2/3 * mag_B_perp + 1/3 * mag_B_perp
-mag_plot = plot(
-            fields, [mag_A_para mag_A_perp mag_B_para mag_B_perp mag_A_powd mag_B_powd],
-            label=[L"B\parallel c_{A}" L"B\perp c_{A}" L"B\parallel c_{B}" L"B\perp c_{B}" "Powder A" "Powder B"],
-            xlabel="Field [Tesla]",
-            ylabel="M " * L"[\mu_{B}/ion]"
-            )
-
-
-"""
-calculate the inverse susceptibility for model A
-two field directions are considered, the strength of the field is 0.05 Tesla
-in addition, a powder average is calculated as (2chi_aa + chi_c)/3
-reproduces figure 14 of the paper
-"""
-bext = 0.05
-temps = LinRange(0.5, 300, 150)
-invchi_para = [1/cef_susceptibility_crystal(yb,bdf_A,T=t,Bext=[0,0,bext],units="CGS") for t in temps]
-invchi_perp = [1/cef_susceptibility_crystal(yb,bdf_A,T=t,Bext=[bext,0,0],units="CGS") for t in temps]
-# invchi_powd = [1/cef_susceptibility(yb,bdf_A,t,bext, "CGS") for t in temps]
-invchi_powd_c = (2/3 .* invchi_perp .+ 1/3 .* invchi_para)
-invchi_plot = plot(
-                temps, [invchi_para invchi_perp invchi_powd_c],
-                label=[L"B\parallel c" L"B\perp c" "Powder" "Calc powder"],
-                xlabel="Temperature [Kelvin]",
-                ylabel=L"1/\chi\;[mol/emu]"
-                )
-
-
-plot(ins_plot, cv_plot, mag_plot, invchi_plot, layout=(2, 2), legend=true,
-    dpi=300, size=(1080, 720), thickness_scaling=1.5, scalefontsizes=1.5)
+yb_hexagonalcef()

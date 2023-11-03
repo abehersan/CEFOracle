@@ -1,15 +1,10 @@
-"""
-cef_ops.jl
-
-Explicit reference tables for CF operators
-"""
-
-
-"""
+@doc raw"""
     stevens_O(J::Number, l::Int, m::Int)::Matrix{ComplexF64}
 
-Stevens operators as given in http://www.mcphase.de/manual5_5/node131.html
-as a function of `l` and `m` for a given `J`
+Tabulated version of the Stevens EO by Martin Rotter in the McPhase manual
+These resulting matrices for l in [2, 4, 6] and m = -l:1:l for J in 0.5:0.5:7.5
+are equivalent to those generated programmatically with the algorithm of
+Ryabov and Rudowicz
 """
 function stevens_O(J::Number, l::Int, m::Int)::Matrix{ComplexF64}
     # Stevens operators O_l,m, with l = 2, 4, 6

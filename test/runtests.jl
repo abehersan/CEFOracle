@@ -1,5 +1,9 @@
+using LinearAlgebra
 using CEFOracle
 using Test
+
+
+const PREC::Float64 = 1.0e-7
 
 
 """
@@ -9,10 +13,12 @@ Returns true if extended Stevens operators for J=7/2 are equal to the
 operators tabulated in the mcphase manual up to a numerical precision of 1e-7
 """
 function test_mcphase()
-    for l in [2, 4, 6], m in -l:1:l
-        @assert isapprox(CEFOracle.stevens_EO(7/2, l, m),
-                         CEFOracle.stevens_O(7/2, l, m),
-                         atol=1e-7)
+    for j in 0.5:0.5:7.5
+        for l in [2, 4, 6], m in -l:1:l
+            @assert isapprox(CEFOracle.stevens_EO(j, l, m),
+                            CEFOracle.stevens_O(j, l, m),
+                            atol=PREC)
+        end
     end
     true
 end
@@ -29,7 +35,7 @@ function wignerD_unitary()
     for l in [2, 4, 6]
         for alpha in 0:0.05:2pi, beta in 0:0.05:pi
             WD = CEFOracle.wigner_D(l, alpha, beta, 0)
-            @assert CEFOracle.is_unitary(WD)
+            @assert is_unitary(WD)
         end
     end
     true
@@ -48,12 +54,13 @@ function rotation_invariance_eigenvalues()
     ion = single_ion("Ho3")
     bfactors = blm_dframe(Dict("B20"=>0.37737, "B22"=>3.9770, "B43"=>0.3121,
                                "B4m2"=>-0.1234, "B60"=>0.1312, "B6m6"=>-1.23e-2))
-    evals_0 = cef_eigensystem(ion, bfactors)[2] # original eigenvalues
+    evals_0 = eigvals(cef_hamiltonian(ion, bfactors)) # original eigenvalues
     for alpha in 0:0.05:2pi, beta in 0:0.05:pi
         # calculate eigenvalues of system in rotated coordinate frame
         # they should be the same as in the non-rotated system even if the
         # B-factors are different
-        @assert isapprox(cef_eigensystem(ion, rotate_blm(bfactors, alpha, beta, 0))[2], evals_0)
+        @assert isapprox(eigvals(cef_hamiltonian(ion, rotate_blm(bfactors, alpha, beta, 0))),
+                        evals_0)
     end
     true
 end

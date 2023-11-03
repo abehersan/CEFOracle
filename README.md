@@ -1,59 +1,64 @@
 # CEFOracle
 
-`CEFOracle` is a Julia module inteded to model and analyze the single-ion
-properties of $4f$ electron systems in a systematic way.
-The crystalline-electric field (CEF) at the position of the magnetic ion in a
-solid is modelled in the Stevens formalism and a full CEF matrix is constructed.
+[![Wiki](https://img.shields.io/badge/wiki-CEFOracle-purple)](https://github.com/abehersan/CEFOracle/wiki)
 
-The full CEF matrix is diagonalized and with it, physical properties of the
-single-ion system can be calculated and compared to experimental results.
-The effect of an external magnetic field can also be taken into account 
-when calculating physical observables.
+`CEFOracle` is a Julia module inteded to model and analyze the single-ion
+properties of $4f$ electron magnetic insulators.
+The crystal electric field (CEF) Hamiltonian for a tripositive rare-earth
+magnetic ion in a solid is modelled in the Stevens formalism and a full CEF
+matrix is constructed.
+
+The full CEF matrix is diagonalized and physical observables can be calculated
+using the resulting characteristic energies and wavefunctions.
+This calculation can be compared to experimental results.
+The effect of an external magnetic field can also be taken into account in the
+calculation.
 
 The static magnetic susceptibility, the magnetization, magnetic moment,
 specific heat capacity and inelastic neutron scattering cross-sections can
-be calculated by `CEFOracle` given a CEF model for both polycrystalline and
-single-crystal samples.
+be calculated by `CEFOracle` given a CEF Hamiltonian for both polycrystalline
+and single-crystal samples.
 
 The single-ion Hamiltonian treated in `CEFOracle` is the following:
 
 ```math
-\hat{\mathcal{H}} = \sum_{l, m}B^m_l\hat{O}^m_l(J) - g_{J}\mu_{\rm{B}}\boldsymbol{B}\cdot\hat{\boldsymbol{J}}(J),
+\hat{\mathcal{H}} =
+\hat{\mathcal{H}}_{\text{CEF}} + \hat{\mathcal{H}}_{\text{Zeeman}} =
+\sum_{l\in\{2, 4, 6\}}\sum_{m=-l}^{l} B_{l}^{m}\hat{O}_{l}^{m}(J) +
+\mu_{\text{B}}\mathbf{B}^{T}\cdot\mathbf{g}\cdot\mathbf{\hat{I}}(J).
 ```
 
-where $\hat{O}^m_l(J)$ are the extended Stevens operators (ESOs). Values of
-$l \in [2, 4, 6]$ and $m \in [-l, l]$ are most relevant in spectroscopical
+where $`\hat{O}^m_l(J)`$ are the extended Stevens operators (ESOs). Values of
+$`l \in [2, 4, 6]`$ and $`m \in [-l, l]`$ are most relevant in spectroscopical
 studies of real materials. The ESOs are given as a function of the total angular
 momentum quantum number $J$, see Ryabov (1999) and Rudowicz (2015).
 
 The Hamiltonian is given as a function of the  total-angular momentum matrices
-$\hat{J}_x, \hat{J}_y, \hat{J}_z$.
-And possibly an external magnetic field $\boldsymbol{B}=(B_x, B_y, B_z)$
-with components in units of Tesla.
+$\hat{I}_x, \hat{I}_y, \hat{I}_z$.
+And possibly an external magnetic field $`\boldsymbol{B}=(B_x, B_y, B_z)`$
+with components in units of Tesla. A generalized g-tensor can also be included
+in the calculations.
 
 To use the module type the following in a Julia session:
+
 ```julia
 julia> ]
 pkg> add https://github.com/abehersan/CEFOracle/tree/main
 ```
 
 For a complete list of the functions afforded by the module and their
-signatures please consult the source files themselves or invoke
-the docstrings in the REPL via help mode. The following will, for example,
-print this README and list the functions exported by the module:
+signatures invoke the docstrings in the REPL via help mode.
+Running the command below witll print this README and list the
+functions exported by the module:
+
 ```julia
 julia> using CEFOracle
 julia> ? 
 help?> CEFOracle
 ```
 
-Running the code below will print the documentation for the `cef_eigensystem`
-function for example:
-```julia
-julia> ? 
-help?> cef_eigensystem
-```
-
+Further information and examples are located in the wiki of this repo.
+The wiki can be accessed by clicking the banner at the top of this README.
 The formalism applied in the module follows from the following references:
 
 - Bauer, E., & Rotter, M. (2010) *Magnetism of complex metallic alloys: Crystalline electric field effects.* In Properties and Applications of Complex Intermetallics.
