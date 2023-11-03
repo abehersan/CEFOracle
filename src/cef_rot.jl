@@ -1,12 +1,4 @@
-"""
-cef_rot.jl
-
-Rotate a crystal-field Hamiltonian into a new coordinate system
-determined by Euler angles alpha, beta and gamma
-"""
-
-
-"""
+@doc raw"""
     ZYZ_rotmatrix(alpha::Real, beta::Real, gamma::Real)::Matrix{Float64}
 
 Rotation matrix for the proper Euler angles `alpha`, `beta` and `gamma` in radian
@@ -34,7 +26,7 @@ Z_rot(theta::Float64)::Matrix{Float64} = [cos(theta) -sin(theta) 0;
                                           0 0 1]
 
 
-"""
+@doc raw"""
     get_euler_angles(v::Vector{<:Real})::Tuple{Float64, Float64, Float64}
 
 Gets the Euler angles `alpha`, `beta` and `gamma` (in radian) that take vector
@@ -52,7 +44,7 @@ function get_euler_angles(v::Vector{<:Real})::Tuple{Float64, Float64, Float64}
 end
 
 
-"""
+@doc raw"""
     wigner_D(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
 
 Returns the Wigner-D (2l+1)x(2l+1) rotation matrix for the sperical tensor
@@ -106,7 +98,7 @@ function small_d(l::Int, mp::Int, m::Int, beta::Real)::Float64
 end
 
 
-"""
+@doc raw"""
     rotate_blm(bfactors::DataFrame, alpha::Real, beta::Real, gamma::Real)::DataFrame
 
 Rotate given CEF Hamiltonian defined by given Stevens parameters bfactors via
@@ -115,7 +107,7 @@ where A is a diagonal and antidiagonal matrix relating the tesseral (Stevens)
 operators O^l_m to the spherical (Racah) tensors T^l_m and
 D is Wigner's D matrix parametrized by the Euler angles alpha, beta, gamma.
 
-The Euler angles alpha, beta and gamma must be inputted in radian.
+The Euler angles `alpha`, `beta` and `gamma` must be inputted in radian.
 
 TODO: optimize by eliminating the inner loop, appending to empty Dframe,
 eliminate try/except block, begin with `full_dframe` for example
@@ -153,7 +145,9 @@ function rotate_stevens(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{Co
 end
 
 
-"""
+@doc raw"""
+    Alm_matrix(l::Int)::Matrix{ComplexF64}
+
 Explicit transformation matrices between Racah and Stevens operators, i.e.
 O = A * T
 Implementation of table (1) and equation (4) of Rudowicz (1985)

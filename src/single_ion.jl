@@ -1,11 +1,4 @@
-"""
-single_ion.jl
-
-Define single-ion properties such as J, gJ and stevens multiplicative factors
-"""
-
-
-"""
+@doc raw"""
     single_ion(ion::String)
 
 Given a magnetic ion name, generate a `mag_ion` structure that contains

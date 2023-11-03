@@ -1,4 +1,4 @@
-"""
+@doc raw"""
     effective_moment(single_ion::mag_ion)::Float64
 
 Calculate the effective magnetic moment in units of Bohr's magneton via
@@ -11,6 +11,14 @@ function effective_moment(single_ion::mag_ion)::Float64
 end
 
 
+@doc raw"""
+    is_normalized(Vps::Matrix{ComplexF64})::Bool
+
+    is_normalized(v::Vector{ComplexF64})::Bool
+
+Determine if columns of Matrix are normalized. I.e. if the 2-norm of the vector
+is equal to 1.
+"""
 function is_normalized(Vps::Matrix{ComplexF64})::Bool
     vecs = size(Vps)[2]
     for v in 1:vecs
@@ -26,6 +34,11 @@ function is_normalized(v::Vector{ComplexF64})::Bool
 end
 
 
+@doc raw"""
+    is_hermitian(A::Matrix{<:Number})::Bool
+
+Determine if matrix `A` is self-adjoint.
+"""
 function is_hermitian(A::Matrix{<:Number})::Bool
     n, m = size(A)
     if n != m
@@ -35,10 +48,16 @@ function is_hermitian(A::Matrix{<:Number})::Bool
 end
 
 
+@doc raw"""
+    is_unitary(A::Matrix{<:Number})::Bool
+
+Determine if matrix `A` is unitary.
+"""
 function is_unitary(A::Matrix{<:Number})::Bool
-    isapprox(A * A', I, atol=PREC) &&
-    isapprox(A' * A, I, atol=PREC) &&
-    return isapprox(det(A).re, 1.0, atol=PREC)
+    @assert isapprox(A * A', I, atol=PREC)
+    @assert isapprox(A' * A, I, atol=PREC)
+    @assert isapprox(det(A).re, 1.0, atol=PREC)
+    return true
 end
 
 

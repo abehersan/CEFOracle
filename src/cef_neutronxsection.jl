@@ -40,6 +40,23 @@ function calc_polmatrix(Q_cart::Vector{Float64})::Matrix{Float64}
 end
 
 
+@doc raw"""
+    cef_neutronxsection_crystal!(single_ion::mag_ion, bfactors::DataFrame,
+                                    calc_grid::DataFrame;
+                                    resfunc::Function=TAS_resfunc)::Nothing
+
+Calculate the inelastic neutron scattering cross-section
+of a crystalline magnetic system consisting of magnetic ions of type `single_ion`.
+The CEF parameters are given in the `bfactors` `DataFrame`.
+The calculation is performed on a `DataFrame` grid `calc_grid`.
+
+`calc_grid` must have columns `[:T, :EN, :Qx, :Qy, :Qz, :Bx, :By, :Bz]`.
+The scattering vector `Q` should be included in Cartesian coordinates and have
+components in units of Angstrom.
+
+`resfunc` is an effective resolution function kernel. As per the default
+it assumes a Gaussian resolution, see `TAS_resfunc` for details.
+"""
 function cef_neutronxsection_crystal!(single_ion::mag_ion, bfactors::DataFrame,
                                     calc_grid::DataFrame;
                                     resfunc::Function=TAS_resfunc)::Nothing
@@ -68,6 +85,22 @@ function cef_neutronxsection_crystal!(single_ion::mag_ion, bfactors::DataFrame,
 end
 
 
+@doc raw"""
+    cef_neutronxsection_powder!(single_ion::mag_ion, bfactors::DataFrame,
+                                    calc_grid::DataFrame;
+                                    resfunc::Function=TAS_resfunc)::Nothing
+
+Calculate the inelastic neutron scattering cross-section
+of a powder magnetic system consisting of magnetic ions of type `single_ion`.
+The CEF parameters are given in the `bfactors` `DataFrame`.
+The calculation is performed on a `DataFrame` grid `calc_grid`.
+
+`calc_grid` must have columns `[:T, :EN, :Q]`.
+The scattering vector length `Q` should have units of Angstrom.
+
+`resfunc` is an effective resolution function kernel. As per the default
+it assumes a Gaussian resolution, see `TAS_resfunc` for details.
+"""
 function cef_neutronxsection_powder!(single_ion::mag_ion, bfactors::DataFrame,
                                     calc_grid::DataFrame;
                                     resfunc::Function=TAS_resfunc)::Nothing

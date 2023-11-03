@@ -1,3 +1,12 @@
+@doc raw"""
+    cart_coords(theta::Real, phi::Real, r::Real)
+    cart_coords(theta::Vector{Float64}, phi::Vector{Float64}, r::Vector{Float64})
+
+Return Cartesian coordinates given spherical coordinates.
+
+Heuristically:
+`[x, y, z] = r*[sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta)]`
+"""
 function cart_coords(theta::Real, phi::Real, r::Real)::Vector{Float64}
     return r * [sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta)]
 end
@@ -20,6 +29,22 @@ function cart_coords(theta::Vector{Float64},
 end
 
 
+@doc raw"""
+    SOPHE_grid(nOctants::Int, maxPhi::Real, GridSize::Int, closedPhi::Bool)::Tuple{Vector{Float64}, Vector{Float64}, Vector{Float64}}
+
+Compute the so-called Sydney Opera House weighted spherical grid.
+Useful for powder-averaged calculations when the spherical average has to be
+taken by hand.
+
+`nOctants` defines the number of octants in the unit sphere to consider. It is
+important to define this together with the span of `phi` with `maxPhi`
+appropriately given the point-group symmetry of the ion.
+`GridSize` parametrizes the number of points to take. The more points considered
+the larger the grid and the longer calculations on said grid will take.
+
+Translated from Stefan Stoll's MATLAB implementation for `EasySpin`
+https://github.com/StollLab/EasySpin/blob/ecd2425a57b251100408707c63b43f85459eb7c8/easyspin/sphgrid.m
+"""
 function SOPHE_grid(nOctants::Int, maxPhi::Real, GridSize::Int, closedPhi::Bool
                     )::Tuple{Vector{Float64}, Vector{Float64}, Vector{Float64}}
     dtheta = (pi / 2) / (GridSize - 1)  # Angular increment along theta
@@ -94,6 +119,12 @@ function SOPHE_grid(nOctants::Int, maxPhi::Real, GridSize::Int, closedPhi::Bool
 end
 
 
+@doc raw"""
+    SOPHE_xyzw(noct::Int, mphi::Real, gsize::Int, cphi::Bool)::Matrix{Float64}
+
+Compute Cartesian coordinates and weights of the SOPHE grid (see `SOPHE_grid`
+for details).
+"""
 function SOPHE_xyzw(noct::Int, mphi::Real, gsize::Int, cphi::Bool)::Matrix{Float64}
     thetas, phis, ws = SOPHE_grid(noct, mphi, gsize, cphi)
     xs, ys, zs = cart_coords(thetas, phis, ones(length(thetas)))

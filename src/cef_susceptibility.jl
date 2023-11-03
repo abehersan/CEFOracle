@@ -36,6 +36,22 @@ function calc_chi(g::Vector{Float64}; spin_ops::Vector{Matrix{ComplexF64}},
 end
 
 
+@doc raw"""
+    cef_susceptibility_crystal!(single_ion::mag_ion, bfactors::DataFrame,
+                                calc_grid::DataFrame; units::String="SI")::Nothing
+
+Calculate the temperature-dependent static susceptibility of a crystalline sample
+consisting of magnetic ions of type `single_ion`.
+The CEF parameters are given in the `bfactors` `DataFrame`.
+The calculation is performed on a `DataFrame` grid `calc_grid`.
+
+The temperature of the system as well as the direction and magnitude of the
+applied magnetic field is specified in `calc_grid` on a row-by-row basis.
+`calc_grid` must have columns `[:T, :Bx, :By, :Bz]`.
+
+The static susceptibility [Bohr magneton per ion] can be calculated in
+`SI`, `CGS` or `ATOMIC` units.
+"""
 function cef_susceptibility_crystal!(single_ion::mag_ion, bfactors::DataFrame,
                                     calc_grid::DataFrame; units::String="SI")::Nothing
     unit_factor = begin
@@ -66,6 +82,22 @@ function cef_susceptibility_crystal!(single_ion::mag_ion, bfactors::DataFrame,
 end
 
 
+@doc raw"""
+    cef_susceptibility_powder!(single_ion::mag_ion, bfactors::DataFrame,
+                                calc_grid::DataFrame; units::String="SI")::Nothing
+
+Calculate the temperature-dependent static susceptibility of a powder sample
+consisting of magnetic ions of type `single_ion`.
+The CEF parameters are given in the `bfactors` `DataFrame`.
+The calculation is performed on a `DataFrame` grid `calc_grid`.
+
+The temperature of the system as well as the direction and magnitude of the
+applied magnetic field is specified in `calc_grid` on a row-by-row basis.
+`calc_grid` must have columns `[:T, :B]`.
+
+The static susceptibility [Bohr magneton per ion] can be calculated in
+`SI`, `CGS` or `ATOMIC` units.
+"""
 function cef_susceptibility_powder!(single_ion::mag_ion, bfactors::DataFrame,
                                    calc_grid::DataFrame; xyzw::Matrix{Float64},
                                    units::String="SI")::Nothing

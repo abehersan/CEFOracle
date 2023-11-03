@@ -1,8 +1,3 @@
-"""
-units.jl
-"""
-
-
 const meV_per_K = 0.086173332621451774  # divide En by meV_per_K to get En in K
 const mu0 = 1.25663706212e-6            # [N/A]
 const muB = 0.057883738013331           # [meV/T]

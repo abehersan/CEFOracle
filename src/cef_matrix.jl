@@ -1,12 +1,11 @@
+@doc raw"""
+    cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(Float64, 3))::Nothing
+
+Display CEF matrix diagonalization results. Useful in cases where a quick
+view of the CEF energy spectrum is desired.
+Details of the magnetic ion, the CEF parameters and experimental conditions
+are printed.
 """
-cef_matrix.jl
-
-Define and diagonalize the CEF Hamiltonian matrix from non-zero Stevens
-parameters and an applied magnetic field (external).
-Hamiltonian -> H = H_CEF + H_Zeeman
-"""
-
-
 function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
                         B::Vector{<:Real}=zeros(Float64, 3))::Nothing
     cef_matrix = cef_hamiltonian(single_ion, bfactors, B=B)
@@ -37,6 +36,15 @@ function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
 end
 
 
+@doc raw"""
+    cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
+
+Compute full Hamiltonian matrix given CEF parameters.
+The matrix is outputted in the basis of CEF |J, mJ> wavefunctions with
+mJ=-J, -J+1, ... J-1, J.
+If a magnetic field `B` is included, a Zeeman term is added to the Hamiltonian
+where the g-factor of the ion `ion.g` is taken into account.
+"""
 function cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame;
                         B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
     J = single_ion.J
@@ -78,6 +86,15 @@ function H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})
 end
 
 
+@doc raw"""
+    spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
+
+Explicit matrices for spin operators of given total angular momentum
+quantum number `J`.
+The string `a` is one of either `x`, `y`, `z` for the Cartesian spin-operators.
+If `a` is either `+` or `-` explicit matrices for the ladder operators
+are returned.
+"""
 function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
     mJ = -J:1:J
     if isequal(a, "x")
@@ -151,6 +168,14 @@ function ryabov_clm(l::Int, m::Int)::Float64
 end
 
 
+@doc raw"""
+    stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
+
+Returns the explicit matrix for the `m` extended Stevens operator of rank `l`
+for a given total angular momentum quantum number `J`.
+A maximum rank of `l=7` is supported.
+`m` is in the range `-l:1:l`.
+"""
 function stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
     Jp = spin_operators(J, "+")
     Jm = spin_operators(J, "-")
