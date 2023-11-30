@@ -12,6 +12,23 @@ end
 
 
 @doc raw"""
+    cef_reduced_moment(single_ion::mag_ion, bfactors::DataFrame)::Float64
+
+Calculate the reduction of the effective magnetic moment in units of
+Bohr's magneton due to the CEF potential.
+"""
+function cef_reduced_moment(single_ion::mag_ion, bfactors::DataFrame)::Float64
+    sz = spin_operators(single_ion.J, "z")
+    V = eigvecs(cef_hamiltonian(single_ion, bfactors))
+    magmom = 0.0
+    for i in 1:size(V)[1]
+        magmom += abs(adjoint(V[:,i])*sz*V[:, 1])
+    end
+    return magmom
+end
+
+
+@doc raw"""
     is_normalized(Vps::Matrix{ComplexF64})::Bool
 
     is_normalized(v::Vector{ComplexF64})::Bool

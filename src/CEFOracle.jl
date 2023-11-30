@@ -22,6 +22,7 @@ export meV_per_K, mu0, muB, kB, NA, Rg
 
 include("./utils.jl")
 export effective_moment
+export cef_reduced_moment
 export is_normalized, is_hermitian, is_unitary
 
 
