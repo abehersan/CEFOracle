@@ -12,19 +12,42 @@ end
 
 
 @doc raw"""
-    cef_reduced_moment(single_ion::mag_ion, bfactors::DataFrame)::Float64
+    cef_gsmoment(single_ion::mag_ion, bfactors::DataFrame)::Float64
 
-Calculate the reduction of the effective magnetic moment in units of
-Bohr's magneton due to the CEF potential.
+Calculate the magnetic moment in the ground-state of the CEF Hamiltonian.
+Returns the expectation value of Jx, Jy and Jz for the ground-state
+wavefunction |0> in units of Bohr's magneton.
 """
-function cef_reduced_moment(single_ion::mag_ion, bfactors::DataFrame)::Float64
-    sz = spin_operators(single_ion.J, "z")
+function cef_gsmoment(single_ion::mag_ion, bfactors::DataFrame)::Vector{Float64}
+    spin_ops = [spin_operators(single_ion.J, "x"),
+                spin_operators(single_ion.J, "y"),
+                spin_operators(single_ion.J, "z")]
+    V0 = eigvecs(cef_hamiltonian(single_ion, bfactors))[:, 1]
+    redmom = [real(adjoint(V0)*s*V0) for s in spin_ops]
+    return redmom
+end
+
+
+@doc raw"""
+    cef_redmoment(single_ion::mag_ion, bfactors::DataFrame)::Float64
+
+Calculate the reduction to the paramagnetic magnetic moment due to the
+CEF Hamiltonian.
+Returns the expectation value of Jx, Jy and Jz
+for all eigen-wavefunctions |V> in units of Bohr's magneton.
+"""
+function cef_redmoment(single_ion::mag_ion, bfactors::DataFrame)::Vector{Float64}
+    spin_ops = [spin_operators(single_ion.J, "x"),
+                spin_operators(single_ion.J, "y"),
+                spin_operators(single_ion.J, "z")]
     V = eigvecs(cef_hamiltonian(single_ion, bfactors))
-    magmom = 0.0
-    for i in 1:size(V)[1]
-        magmom += abs(adjoint(V[:,i])*sz*V[:, 1])
+    hdim = Int(2*single_ion.J+1)
+    redmom = zeros(Float64, 3)
+    for i in eachindex(spin_ops)
+        jexp = sum([adjoint(V[:, j])*spin_ops[i]*V[:, j] for j in 1:hdim])
+        redmom[i] = real(jexp)
     end
-    return magmom
+    return redmom
 end
 
 

@@ -9,7 +9,7 @@ using Statistics
 using OffsetArrays
 
 
-const PREC::Float64 = 1.0e-7
+const PREC::Float64 = 1.0e-9
 
 
 include("./single_ion.jl")
@@ -22,7 +22,8 @@ export meV_per_K, mu0, muB, kB, NA, Rg
 
 include("./utils.jl")
 export effective_moment
-export cef_reduced_moment
+export cef_gsmoment
+export cef_redmoment
 export is_normalized, is_hermitian, is_unitary
 
 

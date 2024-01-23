@@ -84,7 +84,8 @@ end
 
 @doc raw"""
     cef_susceptibility_powder!(single_ion::mag_ion, bfactors::DataFrame,
-                                calc_grid::DataFrame; units::String="SI")::Nothing
+                                calc_grid::DataFrame; xyzw::Matrix{Float64},
+                                units::String="SI")::Nothing
 
 Calculate the temperature-dependent static susceptibility of a powder sample
 consisting of magnetic ions of type `single_ion`.
