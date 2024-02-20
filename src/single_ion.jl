@@ -135,3 +135,10 @@ Base.@kwdef mutable struct mag_ion
     ff_coeff_j0::Vector{Float64}
     ff_coeff_j2::Vector{Float64}
 end
+
+
+function Base.show(io::IO, ::MIME"text/plain", ion::mag_ion)
+    printstyled(io, "Magnetic ion: $(ion.ion)\n")
+    println(io, "Quantum number J: $(ion.J).\nHilbert space dimension: $(Int(2*ion.J+1)).")
+    return
+end
