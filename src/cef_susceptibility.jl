@@ -17,7 +17,7 @@ function calc_chialphaalpha(; op_alpha::Matrix{ComplexF64},
                 m_element = ((m_element_alpha*conj(m_element_alpha))*pop_diff)/(epp-ep)
                 chi_alphaalpha += m_element
             end
-        end
+        # end
     end
     t_avg_alpha = thermal_average(Ep=Ep, Vp=Vp, operator=op_alpha, T=T, mode=abs)
     chi_alphaalpha -= (t_avg_alpha^2)/(kB*T)
