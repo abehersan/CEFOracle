@@ -4,9 +4,10 @@ function calc_chialphaalpha(; op_alpha::Matrix{ComplexF64},
     chi_alphaalpha::Float64 = 0.0
     np = population_factor(Ep, T)
     for (p, ep) in enumerate(Ep), (pp, epp) in enumerate(Ep)
-        if iszero(np[p]) || iszero(np[pp])
-            continue
-        else
+        # TODO: see if the lines below introduce bugs
+        # if iszero(np[p]) || iszero(np[pp])
+        #     continue
+        # else
             m_element_alpha = adjoint(Vp[:,p])*op_alpha*Vp[:,pp]
             if isapprox(ep, epp; atol=PREC)
                 m_element = m_element_alpha*conj(m_element_alpha)*np[p]/(kB*T)
@@ -18,7 +19,7 @@ function calc_chialphaalpha(; op_alpha::Matrix{ComplexF64},
             end
         end
     end
-    t_avg_alpha = thermal_average(Ep=Ep, Vp=Vp, operator=op_alpha, T=T)
+    t_avg_alpha = thermal_average(Ep=Ep, Vp=Vp, operator=op_alpha, T=T, mode=abs)
     chi_alphaalpha -= (t_avg_alpha^2)/(kB*T)
     return chi_alphaalpha
 end

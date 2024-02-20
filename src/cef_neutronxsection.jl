@@ -18,15 +18,17 @@ function calc_Salphabeta(E::Float64, T::Float64; R::Function,
     end
     Salphabeta::Float64 = 0.0
     np = population_factor(Ep, T) # 2J+1 vector
-    for i in eachindex(np), j in eachindex(np)
-        if iszero(np[i]) || iszero(np[j])
+    for i in eachindex(np)
+        if iszero(np[i])
             continue
         else
-            Salphabeta += abs(
-                adjoint(Vp[:,i])*J_alpha*Vp[:,j] *
-                adjoint(Vp[:,j])*J_beta *Vp[:,i] *
-                np[i] *
-                R(E, Ep[j]-Ep[i])) # resolution as a function of energy transfer
+            for j in eachindex(np)
+                Salphabeta += abs(
+                    adjoint(Vp[:,i])*J_alpha*Vp[:,j] *
+                    adjoint(Vp[:,j])*J_beta *Vp[:,i] *
+                    np[i] *
+                    R(E, Ep[j]-Ep[i])) # resolution as a function of energy transfer
+            end
         end
     end
     return Salphabeta
