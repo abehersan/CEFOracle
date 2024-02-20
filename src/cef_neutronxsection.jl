@@ -4,33 +4,37 @@ function dipolar_formfactor(ion::mag_ion, Q::Real)::Float64
     s = Q / 4pi
     ff_j0 = A_j0 * exp(-a_j0*s^2) + B_j0 * exp(-b_j0*s^2) + C_j0 * exp(-c_j0*s^2) + D_j0
     ff_j2 = A_j2*s^2 * exp(-a_j2*s^2) + B_j2*s^2 * exp(-b_j2*s^2) + C_j2*s^2 * exp(-c_j2*s^2) + D_j2*s^2
-    return ff_j0 + ( (2-ion.g)/ion.g ) * ff_j2
+    return ff_j0 + ( (2-norm(ion.g))/norm(ion.g) ) * ff_j2
 end
 
 
 function calc_Salphabeta(E::Float64, T::Float64; R::Function,
-                         Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
-                         J_alpha::Matrix{ComplexF64}, J_beta::Matrix{ComplexF64})::Float64
+                        Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
+                        J_alpha::Matrix{ComplexF64}, J_beta::Matrix{ComplexF64})::Float64
     if E < 0.0 # detailed balance
         return calc_Salphabeta(abs(E), T, Ep=Ep, Vp=Vp, R=R,
-                               J_alpha=J_alpha, J_beta=J_beta) *
-                               exp(-abs(E)/(kB*T))
+                                J_alpha=J_alpha, J_beta=J_beta) *
+                                exp(-abs(E)/(kB*T))
     end
     Salphabeta::Float64 = 0.0
     np = population_factor(Ep, T) # 2J+1 vector
     for i in eachindex(np), j in eachindex(np)
-        Salphabeta += abs(
-            transition_matrix_element(n=Vp[:,i], operator=J_alpha,m=Vp[:,j]) *
-            transition_matrix_element(n=Vp[:,j], operator=J_beta ,m=Vp[:,i]) *
-            np[i] *
-            R(E, Ep[j]-Ep[i])) # resolution as a function of energy transfer
+        if iszero(np[i]) || iszero(np[j])
+            continue
+        else
+            Salphabeta += abs(
+                adjoint(Vp[:,i])*J_alpha*Vp[:,j] *
+                adjoint(Vp[:,j])*J_beta *Vp[:,i] *
+                np[i] *
+                R(E, Ep[j]-Ep[i])) # resolution as a function of energy transfer
+        end
     end
     return Salphabeta
 end
 
 
 function calc_polmatrix(Q_cart::Vector{Float64})::Matrix{Float64}
-    pol_matrix = Matrix{Float64}(undef, (3, 3))
+    pol_matrix = Matrix{Float64}(undef, 3, 3)
     Qnorm = norm(Q_cart) # assuming that Q = [Qx, Qy, Qz] is in cartesian coordinates
     for I in CartesianIndices(pol_matrix)
         a, b = Tuple(I)
@@ -40,26 +44,8 @@ function calc_polmatrix(Q_cart::Vector{Float64})::Matrix{Float64}
 end
 
 
-@doc raw"""
-    cef_neutronxsection_crystal!(single_ion::mag_ion, bfactors::DataFrame,
-                                    calc_grid::DataFrame;
-                                    resfunc::Function=TAS_resfunc)::Nothing
-
-Calculate the inelastic neutron scattering cross-section
-of a crystalline magnetic system consisting of magnetic ions of type `single_ion`.
-The CEF parameters are given in the `bfactors` `DataFrame`.
-The calculation is performed on a `DataFrame` grid `calc_grid`.
-
-`calc_grid` must have columns `[:T, :EN, :Qx, :Qy, :Qz, :Bx, :By, :Bz]`.
-The scattering vector `Q` should be included in Cartesian coordinates and have
-components in units of Angstrom.
-
-`resfunc` is an effective resolution function kernel. As per the default
-it assumes a Gaussian resolution, see `TAS_resfunc` for details.
-"""
 function cef_neutronxsection_crystal!(single_ion::mag_ion, bfactors::DataFrame,
-                                    calc_grid::DataFrame;
-                                    resfunc::Function=TAS_resfunc)::Nothing
+                                    calc_grid::DataFrame; resfunc::Function=TAS_resfunc)::Nothing
     f_row = first(calc_grid)
     ext_field = [f_row.Bx, f_row.By, f_row.Bz]
     E, V = eigen(cef_hamiltonian(single_ion, bfactors, B=ext_field))
@@ -67,6 +53,7 @@ function cef_neutronxsection_crystal!(single_ion::mag_ion, bfactors::DataFrame,
     spin_ops = [spin_operators(single_ion.J, "x"),
                 spin_operators(single_ion.J, "y"),
                 spin_operators(single_ion.J, "z")]
+
     @eachrow! calc_grid begin
         @newcol :I_CALC::Vector{Float64}
         Q_cart = [:Qx, :Qy, :Qz]
@@ -78,37 +65,20 @@ function cef_neutronxsection_crystal!(single_ion::mag_ion, bfactors::DataFrame,
                                                 J_alpha=spin_ops[a],
                                                 J_beta=spin_ops[b])
         end
-        :I_CALC = ffactor_term * muB^2 * norm(single_ion.g)^2 *
-                  abs(sum(pol_mat .* S_alphabeta))
+        :I_CALC = ffactor_term * muB^2 * norm(single_ion.g)^2 * abs(sum(pol_mat .* S_alphabeta))
     end
     return
 end
 
 
-@doc raw"""
-    cef_neutronxsection_powder!(single_ion::mag_ion, bfactors::DataFrame,
-                                    calc_grid::DataFrame;
-                                    resfunc::Function=TAS_resfunc)::Nothing
-
-Calculate the inelastic neutron scattering cross-section
-of a powder magnetic system consisting of magnetic ions of type `single_ion`.
-The CEF parameters are given in the `bfactors` `DataFrame`.
-The calculation is performed on a `DataFrame` grid `calc_grid`.
-
-`calc_grid` must have columns `[:T, :EN, :Q]`.
-The scattering vector length `Q` should have units of Angstrom.
-
-`resfunc` is an effective resolution function kernel. As per the default
-it assumes a Gaussian resolution, see `TAS_resfunc` for details.
-"""
 function cef_neutronxsection_powder!(single_ion::mag_ion, bfactors::DataFrame,
-                                    calc_grid::DataFrame;
-                                    resfunc::Function=TAS_resfunc)::Nothing
+                                    calc_grid::DataFrame; resfunc::Function=TAS_resfunc)::Nothing
     E, V = eigen(cef_hamiltonian(single_ion, bfactors))
     E .-= minimum(E)
     spin_ops = [spin_operators(single_ion.J, "x"),
                 spin_operators(single_ion.J, "y"),
                 spin_operators(single_ion.J, "z")]
+
     @eachrow! calc_grid begin
         @newcol :I_CALC::Vector{Float64}
         ffactor_term = abs(dipolar_formfactor(single_ion, :Q))^2
@@ -118,8 +88,7 @@ function cef_neutronxsection_powder!(single_ion::mag_ion, bfactors::DataFrame,
                                                 J_alpha=spin_ops[a],
                                                 J_beta=spin_ops[b])
         end
-        :I_CALC = ffactor_term * muB^2 * norm(single_ion.g)^2 *
-                  2.0/3.0 * sum(S_alphabeta)
+        :I_CALC = ffactor_term * muB^2 * norm(single_ion.g)^2 * 2.0/3.0 * sum(S_alphabeta)
     end
     return
 end

@@ -9,7 +9,8 @@ using Statistics
 using OffsetArrays
 
 
-const PREC::Float64 = 1.0e-9
+const PREC::Float64 = 1.0e-9    # for degeneracy calculations
+const SDIG::Int64 = 9           # for numerical cutoffs
 
 
 include("./single_ion.jl")
@@ -22,8 +23,6 @@ export meV_per_K, mu0, muB, kB, NA, Rg
 
 include("./utils.jl")
 export effective_moment
-export cef_gsmoment
-export cef_redmoment
 export is_normalized, is_hermitian, is_unitary
 
 
@@ -48,16 +47,18 @@ export stevens_EO
 include("./thermodynamical_quantities.jl")
 export population_factor
 export partition_function
-export transition_matrix_element
 export thermal_average
 
 
 include("./cef_magnetization.jl")
-export cef_magneticmoment_crystal!, cef_magneticmoment_powder!
+export cef_magneticmoment_crystal!
+export cef_magneticmoment_powdergrid!
 
 
 include("./cef_susceptibility.jl")
-export cef_susceptibility_crystal!, cef_susceptibility_powder!
+export cef_susceptibility_crystal!
+export cef_susceptibility_powder!
+export cef_susceptibility_powdergrid!
 
 
 include("./cef_entropy.jl")

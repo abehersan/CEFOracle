@@ -16,7 +16,14 @@ end
 
 function mag_heatcap(Ep::Vector{Float64}, T::Real)::Float64
     np = population_factor(Ep, T)
-    heatcap = sum((Ep/(kB*T)).^2 .* np) - sum((Ep/(kB*T).*np).^2)
+    heatcap::Float64 = 0.0
+    for i in eachindex(np)
+        if iszero(np[i])
+            continue
+        else
+            heatcap += (Ep[i]/(kB*T)).^2 .* np[i] - (Ep[i]/(kB*T).*np[i]).^2
+        end
+    end
     return heatcap
 end
 
