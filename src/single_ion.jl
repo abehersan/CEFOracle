@@ -22,8 +22,8 @@ function single_ion(ion::String)
             5/2, 6/7,
             -5.7143/1e2, 63.4921/1e4, 0,
             0.3666, 0.3108, 0.5119,
-            0.2953, 17.6846, 0.2923, 6.7329, 0.4313, 5.3827, -0.0194, # for j0
-            0.9809, 18.0630, 1.8413, 7.7688, 0.9905, 2.8452, 0.0120 # for j2
+            0.2291, 18.18, 0.7897, 5.807, -0.0191, 0.0, 0.0, # for j0
+            2.1284, 8.9174, 1.1229, 2.8371, 0.01108, 0.0, 0.0 # for j2
             ),
         "Pr3"=>SVector{22, Float64}(
             4, 4/5,
@@ -96,11 +96,6 @@ function single_ion(ion::String)
             0.1570, 18.5553, 0.8484, 6.5403, 0.8880, 2.0367, 0.0318
             ),
     )
-    if isequal(ion, "Ce3")
-        warn_mess = "Mag form factor coefficients for Ce3+ not defined.\n" *
-            "Using parameters for Ce2+ instead."
-        @warn warn_mess
-    end
     try
         J, g,
         alpha, beta, gamma,

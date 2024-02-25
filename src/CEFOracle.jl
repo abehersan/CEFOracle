@@ -66,6 +66,7 @@ export cef_entropy!, cef_entropy_speclevels!
 
 
 include("./cef_neutronxsection.jl")
+export dipolar_formfactor
 export cef_neutronxsection_crystal!, cef_neutronxsection_powder!
 export TAS_resfunc, gaussian, lorentz
 
