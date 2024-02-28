@@ -9,15 +9,15 @@ are printed.
 function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
                         B::Vector{<:Real}=zeros(Float64, 3))::Nothing
     cef_matrix = cef_hamiltonian(single_ion, bfactors, B=B)
-    @assert is_hermitian(cef_matrix)
-    cef_energies, cef_wavefunctions = eigen(cef_matrix)
+    @assert ishermitian(cef_matrix)
+    E = eigvals(cef_matrix)
     printstyled("CEF matrix diagonalization results.\n\n", color=:underline, bold=true)
     display(single_ion)
     println("g-tensor: $(single_ion.g).\n")
     println("External field in [Tesla]: [Bx, By, Bz] = $B\n")
     println("CEF energy levels in [meV]:")
-    display(cef_energies .- minimum(cef_energies))
-    return
+    display(E .- minimum(E))
+    return nothing
 end
 
 
@@ -31,7 +31,7 @@ If a magnetic field `B` is included, a Zeeman term is added to the Hamiltonian
 where the g-factor of the ion `ion.g` is taken into account.
 """
 function cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame;
-                        B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
+                        B::Vector{<:Real}=zeros(Float64, 3))::HERMITIANC64
     J = single_ion.J
     g = single_ion.g
     if iszero(B)
@@ -42,32 +42,34 @@ function cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame;
 end
 
 
-function H_cef(J::Float64, bfactors::DataFrame)::Matrix{ComplexF64}
+function H_cef(J::Float64, bfactors::DataFrame)::HERMITIANC64
     m_dim = Int(2*J+1)
     cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
     @eachrow! bfactors begin
         cef_matrix += :Blm * stevens_EO(J, :l, :m)
     end
-    return cef_matrix
+    return Hermitian(cef_matrix)
 end
 
 
-function H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})::Matrix{ComplexF64}
+function H_zeeman(J::Float64, g::Float64, external_field::Vector{<:Real})::HERMITIANC64
     Bx, By, Bz = external_field
     BxJx = spin_operators(J, "x") * Bx
     ByJy = spin_operators(J, "y") * By
     BzJz = spin_operators(J, "z") * Bz
-    return (-1.0 * g * muB) * (BxJx + ByJy + BzJz)
+    zeeman_matrix = (-1.0 * g * muB) * (BxJx + ByJy + BzJz)
+    return Hermitian(zeeman_matrix)
 end
 
 
-function H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})::Matrix{ComplexF64}
+function H_zeeman(J::Float64, g::Vector{<:Real}, external_field::Vector{<:Real})::HERMITIANC64
     Bx, By, Bz = external_field
     gxx, gyy, gzz = g
     gxxBxJx = spin_operators(J, "x") * (gxx * Bx)
     gyyByJy = spin_operators(J, "y") * (gyy * By)
     gzzBzJz = spin_operators(J, "z") * (gzz * Bz)
-    return (-1.0 * muB) * (gxxBxJx + gyyByJy + gzzBzJz)
+    zeeman_matrix = (-1.0 * muB) * (gxxBxJx + gyyByJy + gzzBzJz)
+    return Hermitian(zeeman_matrix)
 end
 
 
@@ -107,6 +109,9 @@ function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
         jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
         Jm = diagm(-1=>jm_eigval[2:end])
         return Jm
+    else
+        @error "String $(a) not understood. Choose one of either {x, y, z, +, -}"
+        return nothing
     end
 end
 
@@ -161,7 +166,7 @@ for a given total angular momentum quantum number `J`.
 A maximum rank of `l=7` is supported.
 `m` is in the range `-l:1:l`.
 """
-function stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
+function stevens_EO(J::Real, l::Int, m::Int)::HERMITIANC64
     Jp = spin_operators(J, "+")
     Jm = spin_operators(J, "-")
     T = Jp^l # T^l_l
@@ -175,5 +180,5 @@ function stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
     else
         Op = clm/2im * (T - adjoint(T))
     end
-    return Op
+    return Hermitian(Op)
 end

@@ -125,10 +125,10 @@ Base.@kwdef mutable struct mag_ion
     ion::String
     J::Float64
     g::Union{Vector{<:Real}, Real}
-    stevens_factors::Vector{Float64}
-    rad_wavefunction::Vector{Float64}
-    ff_coeff_j0::Vector{Float64}
-    ff_coeff_j2::Vector{Float64}
+    stevens_factors::VEC{3}
+    rad_wavefunction::VEC{3}
+    ff_coeff_j0::VEC{7}
+    ff_coeff_j2::VEC{7}
 end
 
 
