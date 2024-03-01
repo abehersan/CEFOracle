@@ -121,6 +121,17 @@ function single_ion(ion::String)
 end
 
 
+function custom_spin(J::Real, g::Real)::mag_ion
+    return mag_ion(
+        ion="S", J=J, g=g,
+        stevens_factors=zeros(3),
+        rad_wavefunction=zeros(3),
+        ff_coeff_j0=zeros(7),
+        ff_coeff_j2=zeros(7)
+    )
+end
+
+
 Base.@kwdef mutable struct mag_ion
     ion::String
     J::Float64
@@ -135,5 +146,8 @@ end
 function Base.show(io::IO, ::MIME"text/plain", ion::mag_ion)
     printstyled(io, "Magnetic ion: $(ion.ion)\n")
     println(io, "Quantum number J: $(ion.J).\nHilbert space dimension: $(Int(2*ion.J+1)).")
+    if isequal(ion.ion, "S")
+        @warn "Custom ion! Geometric factors, radial wavefunction coefficients and form-factor coefficients are zero. Manually initialize them."
+    end
     return
 end

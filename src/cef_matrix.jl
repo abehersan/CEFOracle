@@ -22,7 +22,7 @@ end
 
 
 @doc raw"""
-    cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(Float64, 3))::Matrix{ComplexF64}
+    cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(Float64, 3))::HERMITIANC64
 
 Compute full Hamiltonian matrix given CEF parameters.
 The matrix is outputted in the basis of CEF |J, mJ> wavefunctions with
@@ -40,6 +40,31 @@ function cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame;
         return H_cef(J, bfactors) + H_zeeman(J, g, B)
     end
 end
+
+
+@doc raw"""
+    cef_hamiltonian(single_ion::mag_ion, D::Real, E::Real; B::Vector{<:Real}=zeros(Float64, 3))::HERMITIANC64
+
+Compute full Hamiltonian matrix given effective anisotropy parameters `D` and `E`.
+The Hamiltonian is given by: D Jz^2 + E/2(Jp^2 + Jm^2).
+The matrix is outputted in the basis of CEF |J, mJ> wavefunctions with
+mJ=-J, -J+1, ... J-1, J.
+If a magnetic field `B` is included, a Zeeman term is added to the Hamiltonian
+where the g-factor of the ion `ion.g` is taken into account.
+"""
+function cef_hamiltonian(single_ion::mag_ion, D::Real, E::Real;
+                        B::Vector{<:Real}=zeros(Float64, 3))::HERMITIANC64
+    J = single_ion.J
+    g = single_ion.g
+    h_cef = D * spin_operators(J, "z")^2
+    h_cef += E * (spin_operators(J, "+")^2 + spin_operators(J, "-")^2)/2
+    if iszero(B)
+        return Hermitian(h_cef)
+    else
+        return Hermitian(h_cef) + H_zeeman(J, g, B)
+    end
+end
+
 
 
 function H_cef(J::Float64, bfactors::DataFrame)::HERMITIANC64
@@ -159,7 +184,7 @@ end
 
 
 @doc raw"""
-    stevens_EO(J::Real, l::Int, m::Int)::Matrix{ComplexF64}
+    stevens_EO(J::Real, l::Int, m::Int)::HERMITIANC64
 
 Returns the explicit matrix for the `m` extended Stevens operator of rank `l`
 for a given total angular momentum quantum number `J`.
