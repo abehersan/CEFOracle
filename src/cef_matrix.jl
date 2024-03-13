@@ -66,7 +66,6 @@ function cef_hamiltonian(single_ion::mag_ion, D::Real, E::Real;
 end
 
 
-
 function H_cef(J::Float64, bfactors::DataFrame)::HERMITIANC64
     m_dim = Int(2*J+1)
     cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
@@ -144,11 +143,9 @@ end
 function ryabov_clm(l::Int, m::Int)::Float64
     lmax = 13
     if l > lmax
-        err_message = "Invalid l, l<lmax, where l: $l, lmax: $lmax"
-        @error err_message
+        @error "Invalid l, l<lmax, where l: $l, lmax: $lmax"
     elseif !(m in -l:1:l)
-        err_message = "Invalid m, m in {-l, l}, where m: $m, l: $l"
-        @error err_message
+        @error "Invalid m, m in {-l, l}, where m: $m, l: $l"
     end
     # Flm coefficients calculated by Stoll and implemented in EasySpin
     # see: https://github.com/StollLab/EasySpin/blob/main/easyspin/stev.m

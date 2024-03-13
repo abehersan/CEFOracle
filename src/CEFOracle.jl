@@ -22,6 +22,7 @@ const HERMITIANC64 = Hermitian{ComplexF64, Matrix{ComplexF64}}
 
 include("./single_ion.jl")
 export single_ion
+export mag_ion
 
 
 include("./units.jl")

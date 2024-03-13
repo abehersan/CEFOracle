@@ -42,7 +42,7 @@ function cef_magneticmoment_crystal!(single_ion::mag_ion, bfactors::DataFrame,
         end
         :M_CALC = calc_magmom(single_ion.g, spin_ops=spin_proj, Ep=E, Vp=V, T=:T) * unit_factor
     end
-    return
+    return nothing
 end
 
 
