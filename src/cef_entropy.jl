@@ -53,7 +53,7 @@ function cef_entropy!(single_ion::mag_ion, bfactors::DataFrame,
     E = eigvals(cef_hamiltonian(single_ion, bfactors))
     E .-= minimum(E)
     calc_grid[!, :FE_CALC] = [free_energy(E, t)*convfac for t in calc_grid.T]
-    calc_grid[!, :CP_CALC] = [mag_heatcap(E, t)*convfac for t in calc_grid.T]
+    calc_grid[!, :HC_CALC] = [mag_heatcap(E, t)*convfac for t in calc_grid.T]
     calc_grid[!, :SM_CALC] = [mag_entropy(E, t)*convfac for t in calc_grid.T]
     return
 end
@@ -91,7 +91,7 @@ function cef_entropy_speclevels!(single_ion::mag_ion, bfactors::DataFrame,
     E = eigvals(cef_hamiltonian(single_ion, bfactors))
     E .-= minimum(E)
     calc_grid[!, :FE_CALC] = [free_energy(E[levels], t)*convfac for t in calc_grid.T]
-    calc_grid[!, :CP_CALC] = [mag_heatcap(E[levels], t)*convfac for t in calc_grid.T]
+    calc_grid[!, :HC_CALC] = [mag_heatcap(E[levels], t)*convfac for t in calc_grid.T]
     calc_grid[!, :SM_CALC] = [mag_entropy(E[levels], t)*convfac for t in calc_grid.T]
     return
 end
