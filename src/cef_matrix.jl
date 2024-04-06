@@ -3,20 +3,20 @@
 
 Display CEF matrix diagonalization results. Useful in cases where a quick
 view of the CEF energy spectrum is desired.
-Details of the magnetic ion, the CEF parameters and experimental conditions
-are printed.
+Details of the magnetic ion, the CEF parameters and applied field are displayed.
 """
 function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
                         B::Vector{<:Real}=zeros(Float64, 3))::Nothing
     cef_matrix = cef_hamiltonian(single_ion, bfactors, B=B)
     @assert ishermitian(cef_matrix)
     E = eigvals(cef_matrix)
+    E .-= minimum(E)
     printstyled("CEF matrix diagonalization results.\n\n", color=:underline, bold=true)
     display(single_ion)
     println("g-tensor: $(single_ion.g).\n")
     println("External field in [Tesla]: [Bx, By, Bz] = $B\n")
     println("CEF energy levels in [meV]:")
-    display(E .- minimum(E))
+    display(E)
     return nothing
 end
 
@@ -135,7 +135,6 @@ function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
         return Jm
     else
         @error "String $(a) not understood. Choose one of either {x, y, z, +, -}"
-        return nothing
     end
 end
 

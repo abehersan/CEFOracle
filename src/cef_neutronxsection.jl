@@ -37,10 +37,11 @@ end
 
 function calc_polmatrix(Q_cart::Vector{Float64})::Matrix{Float64}
     pol_matrix = Matrix{Float64}(undef, 3, 3)
-    Qnorm = norm(Q_cart) # assuming that Q = [Qx, Qy, Qz] is in cartesian coordinates
+    Q = normalize(Q_cart)
+    Qnorm = norm(Q_cart)
     for I in CartesianIndices(pol_matrix)
         a, b = Tuple(I)
-        pol_matrix[I] = (isequal(a, b)*1.0 - Q_cart[a]*Q_cart[b]/Qnorm)
+        pol_matrix[I] = (isequal(a, b)*1.0 - Q[a]*Q[b]/(Qnorm^2))
     end
     return pol_matrix
 end
@@ -62,8 +63,9 @@ function cef_neutronxsection_crystal!(single_ion::mag_ion, bfactors::DataFrame,
         pol_mat = calc_polmatrix(Q_cart)
         ffactor_term = abs(dipolar_formfactor(single_ion, norm(Q_cart)))^2
         S_alphabeta = Matrix{Float64}(undef, (3, 3))
-        for a in eachindex(spin_ops), b in eachindex(spin_ops)
-            S_alphabeta[a, b] = calc_Salphabeta(:EN, :T, Ep=E, Vp=V, R=resfunc,
+        for I in CartesianIndices(S_alphabeta)
+            a, b = Tuple(I)
+            S_alphabeta[I] = calc_Salphabeta(:EN, :T, Ep=E, Vp=V, R=resfunc,
                                                 J_alpha=spin_ops[a],
                                                 J_beta=spin_ops[b])
         end
@@ -85,8 +87,9 @@ function cef_neutronxsection_powder!(single_ion::mag_ion, bfactors::DataFrame,
         @newcol :I_CALC::Vector{Float64}
         ffactor_term = abs(dipolar_formfactor(single_ion, :Q))^2
         S_alphabeta = Matrix{Float64}(undef, (3, 3))
-        for a in eachindex(spin_ops), b in eachindex(spin_ops)
-            S_alphabeta[a, b] = calc_Salphabeta(:EN, :T, Ep=E, Vp=V, R=resfunc,
+        for I in CartesianIndices(S_alphabeta)
+            a, b = Tuple(I)
+            S_alphabeta[I] = calc_Salphabeta(:EN, :T, Ep=E, Vp=V, R=resfunc,
                                                 J_alpha=spin_ops[a],
                                                 J_beta=spin_ops[b])
         end

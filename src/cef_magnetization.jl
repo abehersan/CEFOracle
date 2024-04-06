@@ -78,7 +78,7 @@ function cef_magneticmoment_powdergrid!(single_ion::mag_ion, bfactors::DataFrame
                 B_field = xyzw_vec[1:3] * ext_field
                 E, V = eigen(cef_hamiltonian(single_ion, bfactors, B=B_field))
                 E .-= minimum(E)
-                spin_proj = spin_ops .* (B_field / norm(B_field))
+                spin_proj = spin_ops .* xyzw_vec[1:3]
                 pnt_avg += calc_magmom(single_ion.g, spin_ops=spin_proj, Ep=E, Vp=V, T=:T) * unit_factor * w
             end
             :M_CALC = pnt_avg
