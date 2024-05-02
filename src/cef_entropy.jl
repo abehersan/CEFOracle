@@ -47,7 +47,7 @@ function cef_entropy!(single_ion::mag_ion, bfactors::DataFrame,
         if isequal(units, "SI")
             NA * 1.602176487*1e-22 *kB  # NA * muB [J/mol/K]
         else
-            @error "Units not supported in Cv calculations. Use SI, [J/K/mol]"
+            @error "Units not supported in Cv calculations. Use SI, [J/mol/K]"
         end
     end
     E = eigvals(cef_hamiltonian(single_ion, bfactors))
