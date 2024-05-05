@@ -3,10 +3,10 @@
 
 Display CEF matrix diagonalization results. Useful in cases where a quick
 view of the CEF energy spectrum is desired.
+
 Details of the magnetic ion, the CEF parameters and applied field are displayed.
 """
-function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame;
-                        B::Vector{<:Real}=zeros(Float64, 3))::Nothing
+function cef_eigensystem(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(Float64, 3))::Nothing
     cef_matrix = cef_hamiltonian(single_ion, bfactors, B=B)
     @assert ishermitian(cef_matrix)
     E = eigvals(cef_matrix)
@@ -27,17 +27,15 @@ end
 Compute full Hamiltonian matrix given CEF parameters.
 The matrix is outputted in the basis of CEF |J, mJ> wavefunctions with
 mJ=-J, -J+1, ... J-1, J.
+
 If a magnetic field `B` is included, a Zeeman term is added to the Hamiltonian
 where the g-factor of the ion `ion.g` is taken into account.
 """
-function cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame;
-                        B::Vector{<:Real}=zeros(Float64, 3))::HERMITIANC64
-    J = single_ion.J
-    g = single_ion.g
+function cef_hamiltonian(single_ion::mag_ion, bfactors::DataFrame; B::Vector{<:Real}=zeros(Float64, 3))::HERMITIANC64
     if iszero(B)
-        return H_cef(J, bfactors)
+        return H_cef(single_ion.J, bfactors)
     else
-        return H_cef(J, bfactors) + H_zeeman(J, g, B)
+        return H_cef(single_ion.J, bfactors) + H_zeeman(single_ion.J, single_ion.g, B)
     end
 end
 
@@ -46,22 +44,22 @@ end
     cef_hamiltonian(single_ion::mag_ion, D::Real, E::Real; B::Vector{<:Real}=zeros(Float64, 3))::HERMITIANC64
 
 Compute full Hamiltonian matrix given effective anisotropy parameters `D` and `E`.
+
 The Hamiltonian is given by: D Jz^2 + E/2(Jp^2 + Jm^2).
 The matrix is outputted in the basis of CEF |J, mJ> wavefunctions with
 mJ=-J, -J+1, ... J-1, J.
+
 If a magnetic field `B` is included, a Zeeman term is added to the Hamiltonian
 where the g-factor of the ion `ion.g` is taken into account.
 """
 function cef_hamiltonian(single_ion::mag_ion, D::Real, E::Real;
                         B::Vector{<:Real}=zeros(Float64, 3))::HERMITIANC64
-    J = single_ion.J
-    g = single_ion.g
-    h_cef = D * spin_operators(J, "z")^2
-    h_cef += E * (spin_operators(J, "+")^2 + spin_operators(J, "-")^2)/2
+    h_cef = D * spin_operators(single_ion.J, "z")^2
+    h_cef += E * (spin_operators(single_ion.J, "+")^2 + spin_operators(single_ion.J, "-")^2)/2
     if iszero(B)
         return Hermitian(h_cef)
     else
-        return Hermitian(h_cef) + H_zeeman(J, g, B)
+        return Hermitian(h_cef) + H_zeeman(single_ion.J, single_ion.g, B)
     end
 end
 

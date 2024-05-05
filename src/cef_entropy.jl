@@ -17,11 +17,11 @@ end
 function mag_heatcap(Ep::Vector{Float64}, T::Real)::Float64
     np = population_factor(Ep, T)
     heatcap::Float64 = 0.0
-    for i in eachindex(np)
+    @inbounds for i in eachindex(np)
         if iszero(np[i])
             continue
         else
-            heatcap += (Ep[i]/(kB*T)).^2 .* np[i] - (Ep[i]/(kB*T).*np[i]).^2
+            heatcap += @. (Ep[i]/(kB*T))^2 * np[i] - (Ep[i]/(kB*T)*np[i])^2
         end
     end
     return heatcap
@@ -52,10 +52,19 @@ function cef_entropy!(single_ion::mag_ion, bfactors::DataFrame,
     end
     E = eigvals(cef_hamiltonian(single_ion, bfactors))
     E .-= minimum(E)
-    calc_grid[!, :FE_CALC] = [free_energy(E, t)*convfac for t in calc_grid.T]
-    calc_grid[!, :HC_CALC] = [mag_heatcap(E, t)*convfac for t in calc_grid.T]
-    calc_grid[!, :SM_CALC] = [mag_entropy(E, t)*convfac for t in calc_grid.T]
-    return
+    T = calc_grid.T
+    FE_CALC = zeros(Float64, length(T))
+    HC_CALC = zeros(Float64, length(T))
+    SM_CALC = zeros(Float64, length(T))
+    for i in eachindex(T)
+        FE_CALC[i] = free_energy(E, T[i]) * convfac
+        HC_CALC[i] = mag_heatcap(E, T[i]) * convfac
+        SM_CALC[i] = mag_entropy(E, T[i]) * convfac
+    end
+    calc_grid[!, :FE_CALC] = FE_CALC
+    calc_grid[!, :HC_CALC] = HC_CALC
+    calc_grid[!, :SM_CALC] = SM_CALC
+    return nothing
 end
 
 
@@ -90,8 +99,17 @@ function cef_entropy_speclevels!(single_ion::mag_ion, bfactors::DataFrame,
     end
     E = eigvals(cef_hamiltonian(single_ion, bfactors))
     E .-= minimum(E)
-    calc_grid[!, :FE_CALC] = [free_energy(E[levels], t)*convfac for t in calc_grid.T]
-    calc_grid[!, :HC_CALC] = [mag_heatcap(E[levels], t)*convfac for t in calc_grid.T]
-    calc_grid[!, :SM_CALC] = [mag_entropy(E[levels], t)*convfac for t in calc_grid.T]
+    T = calc_grid.T
+    FE_CALC = zeros(Float64, length(T))
+    HC_CALC = zeros(Float64, length(T))
+    SM_CALC = zeros(Float64, length(T))
+    for i in eachindex(T)
+        FE_CALC[i] = free_energy(E[levels], T[i]) * convfac
+        HC_CALC[i] = mag_heatcap(E[levels], T[i]) * convfac
+        SM_CALC[i] = mag_entropy(E[levels], T[i]) * convfac
+    end
+    calc_grid[!, :FE_CALC] = FE_CALC
+    calc_grid[!, :HC_CALC] = HC_CALC
+    calc_grid[!, :SM_CALC] = SM_CALC
     return
 end

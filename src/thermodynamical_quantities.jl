@@ -1,11 +1,16 @@
-function population_factor(Ep::Vector{Float64}, T::Real)::VEC{length(Ep)}
+function population_factor(Ep::Vector{Float64}, T::Real)::Vector{Float64}
+    np = similar(Ep)
     if iszero(T)
-        np = zeros(Float64, length(Ep))
         np[1] = 1.0
+        np[2:end] .= 0.0
+        return np
     else
-        np = round.(exp.(-Ep/(kB*T))/partition_function(Ep, T), digits=SDIG)
+        Z = partition_function(Ep, T)
+        @inbounds for i in eachindex(np)
+            np[i] = exp( -Ep[i]/(kB*T) ) / Z
+        end
+        return np
     end
-    return np
 end
 
 
@@ -13,7 +18,11 @@ function partition_function(Ep::Vector{Float64}, T::Real)::Float64
     if iszero(T)
         return 1.0
     else
-        return sum(exp.(-Ep/(kB*T)))
+        Z = 0.0
+        @inbounds for i in eachindex(Ep)
+            Z += exp( -Ep[i]/(kB*T) )
+        end
+        return Z
     end
 end
 
@@ -22,11 +31,11 @@ function thermal_average(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
                         operator::Matrix{ComplexF64}, T::Real, mode::Function=abs)::Float64
     tav::ComplexF64 = 0.0
     np = population_factor(Ep, T)
-    for p in eachindex(np)
-        if iszero(np[p])
+    @views @inbounds for i in eachindex(Ep)
+        if iszero(np[i])
             continue
         else
-            tav += dot(Vp[:, p], operator, Vp[:, p]) * np[p]
+            tav += dot(Vp[:, i], operator, Vp[:, i]) * np[i]
         end
     end
     return mode(tav)
