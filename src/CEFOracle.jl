@@ -23,6 +23,7 @@ const HERMITIANC64 = Hermitian{ComplexF64, Matrix{ComplexF64}}
 include("./single_ion.jl")
 export single_ion
 export mag_ion
+export spin_operators
 
 
 include("./units.jl")
@@ -51,7 +52,6 @@ export SOPHE_grid
 include("./cef_matrix.jl")
 export cef_hamiltonian
 export cef_eigensystem
-export spin_operators
 export stevens_EO
 
 

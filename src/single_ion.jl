@@ -104,11 +104,17 @@ function single_ion(ion::String)
         A_j0, a_j0, B_j0, b_j0, C_j0, c_j0, D_j0,
         A_j2, a_j2, B_j2, b_j2, C_j2, c_j2, D_j2 = mag_ground_state[ion]
         return mag_ion(
-                ion, J, g,
+                ion, J,
+                spin_operators(J, "x"),
+                spin_operators(J, "y"),
+                spin_operators(J, "+"),
+                spin_operators(J, "-"),
+                spin_operators(J, "z"),
+                [g, g, g],
                 [alpha, beta, gamma],
                 [r2, r4, r6],
                 [A_j0, a_j0, B_j0, b_j0, C_j0, c_j0, D_j0],
-                [A_j2, a_j2, B_j2, b_j2, C_j2, c_j2, D_j2]
+                [A_j2, a_j2, B_j2, b_j2, C_j2, c_j2, D_j2],
             )
     catch y
         mag_ions = collect(keys(mag_ground_state))
@@ -135,7 +141,12 @@ end
 Base.@kwdef mutable struct mag_ion
     ion::String
     J::Float64
-    g::Union{Vector{<:Real}, Real}
+    Jx::Matrix{ComplexF64}
+    Jy::Matrix{ComplexF64}
+    Jp::Matrix{ComplexF64}
+    Jm::Matrix{ComplexF64}
+    Jz::Matrix{ComplexF64}
+    g::VEC{3}
     stevens_factors::VEC{3}
     rad_wavefunction::VEC{3}
     ff_coeff_j0::VEC{7}
@@ -150,4 +161,46 @@ function Base.show(io::IO, ::MIME"text/plain", ion::mag_ion)
         @warn "Custom ion! Geometric factors, radial wavefunction coefficients and form-factor coefficients are zero. Manually initialize them."
     end
     return
+end
+
+
+@doc raw"""
+    spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
+
+Explicit matrices for spin operators of given total angular momentum
+quantum number `J`.
+The string `a` is one of either `x`, `y`, `z` for the Cartesian spin-operators.
+If `a` is either `+` or `-` explicit matrices for the ladder operators
+are returned.
+"""
+function spin_operators(J::Float64, a::String)::Matrix{ComplexF64}
+    mJ = -J:1:J
+    if isequal(a, "x")
+        jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
+        jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
+        Jp = diagm(1=>jp_eigval[1:end-1])
+        Jm = diagm(-1=>jm_eigval[2:end])
+        Jx = (Jp + Jm)/2.0
+        return Jx
+    elseif isequal(a, "y")
+        jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
+        jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
+        Jp = diagm(1=>jp_eigval[1:end-1])
+        Jm = diagm(-1=>jm_eigval[2:end])
+        Jy = (Jp - Jm)/2.0im
+        return Jy
+    elseif isequal(a, "z")
+        Jz = diagm(mJ)
+        return Jz
+    elseif isequal(a, "+")
+        jp_eigval = @. sqrt(J*(J+1)-mJ*(mJ+1))
+        Jp = diagm(1=>jp_eigval[1:end-1])
+        return Jp
+    elseif isequal(a, "-")
+        jm_eigval = @. sqrt(J*(J+1)-mJ*(mJ-1))
+        Jm = diagm(-1=>jm_eigval[2:end])
+        return Jm
+    else
+        @error "String $(a) not understood. Choose one of either {x, y, z, +, -}"
+    end
 end
