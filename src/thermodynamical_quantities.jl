@@ -28,14 +28,15 @@ end
 
 
 function thermal_average(; Ep::Vector{Float64}, Vp::Matrix{ComplexF64},
-                        operator::Matrix{ComplexF64}, T::Real, mode::Function=abs)::Float64
+                        op::Matrix{ComplexF64}, T::Real, mode::Function=real)::Float64
     tav::ComplexF64 = 0.0
     np = population_factor(Ep, T)
     @views @inbounds for i in eachindex(Ep)
-        if iszero(np[i])
+        if isapprox(np[i], 0.0, atol=PREC)
+            # println("$(np[i]) effectively zero!")
             continue
         else
-            tav += dot(Vp[:, i], operator, Vp[:, i]) * np[i]
+            tav += dot(Vp[:, i], op, Vp[:, i]) * np[i]
         end
     end
     return mode(tav)

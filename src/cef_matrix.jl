@@ -15,8 +15,13 @@ function cef_eigensystem(ion::mag_ion, cefparams::DataFrame; B::Vector{<:Real}=z
     display(ion)
     println("g-tensor: $(ion.g).\n")
     println("External field in [Tesla]: [Bx, By, Bz] = $B\n")
-    println("CEF energy levels in [meV]:")
-    display(E)
+    println("CEF energy levels in [meV] and in [Kelvin]:")
+    for i in eachindex(E)
+        Emev = round(E[i], digits=SDIG)
+        EK = round(E[i]/meV_per_K, digits=SDIG)
+        Es = Emev, EK
+        println(join(Es, ", "))
+    end
     return nothing
 end
 
@@ -55,8 +60,8 @@ where the g-factor of the ion `ion.g` is taken into account.
 function cef_hamiltonian(ion::mag_ion, D::Real, E::Real; B::Vector{<:Real}=zeros(Float64, 3))::HERMITIANC64
     m_dim = Int(2*ion.J+1)
     h_cef = zeros(ComplexF64, (m_dim, m_dim))
-    h_cef .+= D * ion.Jz^2
-    h_cef .+= E * (ion.Jp^2 + ion.Jm^2)/2
+    h_cef += D * ion.Jz^2
+    h_cef += E * (ion.Jp^2 + ion.Jm^2)/2
     if iszero(B)
         return Hermitian(h_cef)
     else

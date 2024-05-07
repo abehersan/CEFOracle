@@ -4,9 +4,10 @@ module CEFOracle
 using DataFrames
 using DataFramesMeta
 using LinearAlgebra
+using OffsetArrays
 using StaticArrays
 using Statistics
-using OffsetArrays
+using Trapz
 
 
 const PREC::Float64 = 1.0e-9    # for degeneracy calculations
