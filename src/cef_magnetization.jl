@@ -56,6 +56,7 @@ end
 
 
 function cef_magneticmoment_powdergrid!(ion::mag_ion, cefparams::DataFrame, calc_df::DataFrame; xyzw::Matrix{Float64}, units::String="SI")::Nothing
+    @warn "FUNCTION UNDER OPTIMISATION CHANGES!"
     unit_factor = mag_units(units)
     spinops = [spin_operators(ion.J, "x"),
                 spin_operators(ion.J, "y"),
