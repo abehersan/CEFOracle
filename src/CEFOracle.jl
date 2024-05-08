@@ -66,13 +66,13 @@ export thermal_average
 include("./cef_magnetization.jl")
 export cef_magneticmoment_crystal!
 export cef_magneticmoment_powder!
-export cef_magneticmoment_powdergrid!
+# export cef_magneticmoment_powdergrid!
 
 
 include("./cef_susceptibility.jl")
 export cef_susceptibility_crystal!
 export cef_susceptibility_powder!
-export cef_susceptibility_powdergrid!
+# export cef_susceptibility_powdergrid!
 
 
 include("./cef_entropy.jl")
@@ -92,6 +92,7 @@ export stevens_O
 
 
 include("./cef_rot.jl")
+export rotation_unitary
 export rotate_blm
 export get_euler_angles
 export ZYZ_rotmatrix
