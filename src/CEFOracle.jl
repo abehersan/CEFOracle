@@ -4,9 +4,10 @@ module CEFOracle
 using DataFrames
 using DataFramesMeta
 using LinearAlgebra
+using OffsetArrays
 using StaticArrays
 using Statistics
-using OffsetArrays
+using Trapz
 
 
 const PREC::Float64 = 1.0e-9    # for degeneracy calculations
@@ -15,6 +16,7 @@ const SDIG::Int64 = 9           # for numerical cutoffs
 const VEC3 = SVector{3, Float64}
 const MAT3 = SMatrix{3, 3, Float64, 9}
 const VEC{N} = SVector{N, Float64}
+const MVEC{N} = MVector{N, Float64}
 const CVEC{N} = SVector{N, ComplexF64}
 const CMAT{N} = SMatrix{N, N, ComplexF64}
 const HERMITIANC64 = Hermitian{ComplexF64, Matrix{ComplexF64}}
@@ -23,6 +25,7 @@ const HERMITIANC64 = Hermitian{ComplexF64, Matrix{ComplexF64}}
 include("./single_ion.jl")
 export single_ion
 export mag_ion
+export spin_operators
 
 
 include("./units.jl")
@@ -51,7 +54,6 @@ export SOPHE_grid
 include("./cef_matrix.jl")
 export cef_hamiltonian
 export cef_eigensystem
-export spin_operators
 export stevens_EO
 
 
@@ -63,13 +65,14 @@ export thermal_average
 
 include("./cef_magnetization.jl")
 export cef_magneticmoment_crystal!
-export cef_magneticmoment_powdergrid!
+export cef_magneticmoment_powder!
+# export cef_magneticmoment_powdergrid!
 
 
 include("./cef_susceptibility.jl")
 export cef_susceptibility_crystal!
 export cef_susceptibility_powder!
-export cef_susceptibility_powdergrid!
+# export cef_susceptibility_powdergrid!
 
 
 include("./cef_entropy.jl")
@@ -89,6 +92,7 @@ export stevens_O
 
 
 include("./cef_rot.jl")
+export rotation_unitary
 export rotate_blm
 export get_euler_angles
 export ZYZ_rotmatrix

@@ -1,97 +1,88 @@
-function free_energy(Ep::Vector{Float64}, T::Real)::Float64
-    np = population_factor(Ep, T)
-    Eavg = dot(np, Ep)
-    S = mag_entropy(Ep, T)
-    return Eavg - T*S
+function hc_units(units::String)
+    if isequal(units, "SI")
+        return Rg
+    else
+        @error "Units not supported in heat capacity calculations. Use SI, [J/K/mol]"
+    end
 end
 
 
-function mag_entropy(Ep::Vector{Float64}, T::Real)::Float64
-    np = population_factor(Ep, T)
-    Z = partition_function(Ep, T)
-    Eavg = dot(np, Ep)
-    return log(Z) + Eavg * (1.0/(kB*T))
+function mag_entropy(HC::Vector{Float64}, T::Vector{Float64})::Vector{Float64}
+    S = similar(HC)
+    @views @inbounds for i in eachindex(T)
+        S[i] = trapz(T[1:i], HC[1:i] ./ T[1:i])
+    end
+    return S
 end
 
 
 function mag_heatcap(Ep::Vector{Float64}, T::Real)::Float64
     np = population_factor(Ep, T)
-    heatcap::Float64 = 0.0
-    for i in eachindex(np)
-        if iszero(np[i])
-            continue
-        else
-            heatcap += (Ep[i]/(kB*T)).^2 .* np[i] - (Ep[i]/(kB*T).*np[i]).^2
-        end
-    end
+    heatcap = sum( ( Ep ./ (kB*T) ) .^2 .* np) - sum( Ep ./ (kB*T) .* np )^2
     return heatcap
 end
 
 
 @doc raw"""
-    cef_entropy!(single_ion::mag_ion, bfactors::DataFrame,
-                    calc_grid::DataFrame; units::String="SI")::Nothing
+    cef_entropy!(single_ion::mag_ion, bfactors::DataFrame, calc_df::DataFrame; units::String="SI")::Nothing
 
-Calculate the temperature-dependent magnetic entropy, free-energy and specific
+Calculate the temperature-dependence of the magnetic entropy and specific
 heat capacity of a magnetic system consisting of magnetic ions of type `single_ion`.
 The CEF parameters are given in the `bfactors` `DataFrame`.
-The calculation is performed on a `DataFrame` grid `calc_grid`.
+The calculation is performed on a `DataFrame` `calc_df`.
 
-`calc_grid` must have column `[:T]`.
+`calc_df` must have column `[:T]`.
 
-The entropy, free-energy and heat capacity are calculated in `SI` units [J/mol/K].
+The entropy and heat capacity are calculated in `SI` units [J/mol/K].
 """
-function cef_entropy!(single_ion::mag_ion, bfactors::DataFrame,
-                     calc_grid::DataFrame; units::String="SI")::Nothing
-    convfac = begin
-        if isequal(units, "SI")
-            NA * 1.602176487*1e-22 *kB  # NA * muB [J/mol/K]
-        else
-            @error "Units not supported in Cv calculations. Use SI, [J/mol/K]"
-        end
-    end
+function cef_entropy!(single_ion::mag_ion, bfactors::DataFrame, calc_df::DataFrame; units::String="SI")::Nothing
+    convfac = hc_units(units)
     E = eigvals(cef_hamiltonian(single_ion, bfactors))
     E .-= minimum(E)
-    calc_grid[!, :FE_CALC] = [free_energy(E, t)*convfac for t in calc_grid.T]
-    calc_grid[!, :HC_CALC] = [mag_heatcap(E, t)*convfac for t in calc_grid.T]
-    calc_grid[!, :SM_CALC] = [mag_entropy(E, t)*convfac for t in calc_grid.T]
-    return
+    T = calc_df.T
+    HC_CALC = similar(T)
+    @inbounds for i in eachindex(T)
+        HC_CALC[i] = mag_heatcap(E, T[i])
+    end
+    HC_CALC *= convfac
+    SM_CALC = mag_entropy(HC_CALC, T)
+    calc_df[!, :HC_CALC] = HC_CALC
+    calc_df[!, :SM_CALC] = SM_CALC
+    return nothing
 end
 
 
 @doc raw"""
-    cef_entropy_speclevels!(single_ion::mag_ion, bfactors::DataFrame,
-                                calc_grid::DataFrame; levels::UnitRange=1:4,
-                                units::String="SI")::Nothing
+    cef_entropy_speclevels!(single_ion::mag_ion, bfactors::DataFrame, calc_df::DataFrame; levels::UnitRange=1:4, units::String="SI")::Nothing
 
-Calculate the temperature-dependent magnetic entropy, free-energy and specific
+Calculate the temperature-dependence of the magnetic entropy and specific
 heat capacity of a magnetic system consisting of magnetic ions of type `single_ion`.
 The CEF parameters are given in the `bfactors` `DataFrame`.
-The calculation is performed on a `DataFrame` grid `calc_grid`.
+The calculation is performed on a `DataFrame` `calc_df`.
 
-`calc_grid` must have column `[:T]`.
+`calc_df` must have column `[:T]`.
 
 `levels` is a step range that specifies the indices of the contributing crystal
-field energy levels. As per the default it is `1:4` which means that the first
+field energy levels.
+
+As per the default it is `1:4` which means that the first
 4 levels contribute to the entropy of the system.
 
-The entropy, free-energy and heat capacity are calculated in `SI` units [J/mol/K].
+The entropy and heat capacity are calculated in `SI` units [J/mol/K].
 """
-function cef_entropy_speclevels!(single_ion::mag_ion, bfactors::DataFrame,
-                                calc_grid::DataFrame; levels::UnitRange=1:4,
-                                units::String="SI")::Nothing
+function cef_entropy_speclevels!(single_ion::mag_ion, bfactors::DataFrame, calc_df::DataFrame; levels::UnitRange=1:4, units::String="SI")::Nothing
     # only levels specified contribute (2J+1 levels total)
-    convfac = begin
-        if isequal(units, "SI")
-            NA * 1.602176487*1e-22 *kB  # NA * muB [J/mol/K]
-        else
-            @error "Units not supported in Cv calculations. Use SI, [J/K/mol]"
-        end
-    end
+    convfac = hc_units(units)
     E = eigvals(cef_hamiltonian(single_ion, bfactors))
     E .-= minimum(E)
-    calc_grid[!, :FE_CALC] = [free_energy(E[levels], t)*convfac for t in calc_grid.T]
-    calc_grid[!, :HC_CALC] = [mag_heatcap(E[levels], t)*convfac for t in calc_grid.T]
-    calc_grid[!, :SM_CALC] = [mag_entropy(E[levels], t)*convfac for t in calc_grid.T]
-    return
+    T = calc_df.T
+    HC_CALC = similar(T)
+    @inbounds for i in eachindex(T)
+        HC_CALC[i] = mag_heatcap(E[levels], T[i])
+    end
+    HC_CALC *= convfac
+    SM_CALC = mag_entropy(HC_CALC, T)
+    calc_df[!, :HC_CALC] = HC_CALC
+    calc_df[!, :SM_CALC] = SM_CALC
+    return nothing
 end

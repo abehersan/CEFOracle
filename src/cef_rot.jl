@@ -1,4 +1,43 @@
 @doc raw"""
+    rotation_unitary(J::Real, n::Vector{<:Real}, phi::Real)::Matrix{ComplexF64}
+
+Creates rotation unitary `U` for a given angular momentum quantum number `J`.
+
+The rotation is done about the axis defined by `n` by an angle `phi` in radian.
+
+Implementation of equation (3.5.42) of Sakurai, J. J., & Napolitano, J. (2020). Modern quantum mechanics
+via matrix exponentiation.
+
+As an example, we rotate the `Jx` quantum mechanical operator by pi/2 degrees
+about the `z`-axis. We expect that after rotation, the rotated operator
+`Jxrot = U^\dagger Jx U = Jy`.
+
+```julia-repl
+julia> ion = single_ion("Tb3+")
+Magnetic ion: Tb3+
+Quantum number J: 6.0.
+Hilbert space dimension: 13.
+
+julia> U = rotation_unitary(ion.J, [0, 0, 1], pi/2);
+
+julia> Jxrot = U' * ion.Jx * U;
+
+julia> @assert isapprox(Jxrot, ion.Jy, atol=1e-9)
+```
+"""
+function rotation_unitary(J::Real, n::Vector{<:Real}, phi::Real)::Matrix{ComplexF64}
+    Jx = spin_operators(J, "x")
+    Jy = spin_operators(J, "y")
+    Jz = spin_operators(J, "z")
+    nnorm = normalize(n)
+    Jproj = sum(nnorm .* [Jx, Jy, Jz])
+    U = exp(-1im * phi * Jproj)
+    @assert isunitary(U)
+    return U
+end
+
+
+@doc raw"""
     ZYZ_rotmatrix(alpha::Real, beta::Real, gamma::Real)::Matrix{Float64}
 
 Rotation matrix for the proper Euler angles `alpha`, `beta` and `gamma` in radian
@@ -7,7 +46,7 @@ for active rotations of vectors via `v_rot = M * v_ori` and matrices
 """
 function ZYZ_rotmatrix(alpha::Real, beta::Real, gamma::Real)::Matrix{Float64}
     a, b, g = map(Float64, [alpha, beta, gamma])
-    Z_rot(a) * Y_rot(b) * Z_rot(g)
+    return Z_rot(a) * Y_rot(b) * Z_rot(g)
 end
 
 
@@ -40,7 +79,7 @@ function get_euler_angles(v::Vector{<:Real})::Tuple{Float64, Float64, Float64}
     alpha = atan(v_norm[2], v_norm[1])# / pi * 180.0
     beta = atan((v_norm[1]^2 + v_norm[2]^2), v_norm[3])# / pi * 180.0
     gamma = 0.0
-    (alpha, beta, gamma) # in radian
+    return (alpha, beta, gamma) # in radian
 end
 
 
@@ -52,22 +91,20 @@ operator of rank l as defined in chapter 6.4 and 6.8 of Lindner, A. (1984).
 Drehimpulse in der Quantenmechanik.
 """
 function wigner_D(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
-    m_dim = Int(2*l+1)
+    mdim = Int(2*l+1)
     ml = -l:1:l
-    rot_mat = zeros(ComplexF64, (m_dim, m_dim))
+    rotmat = Matrix{ComplexF64}(undef, (mdim, mdim))
     for (idmp, mm) in enumerate(ml)
         for (idm, mp) in enumerate(ml)
-            rot_mat[idmp, idm] = (-1)^(mp - mm) *
-                rotation_matrix_element(l, mm, mp, alpha, beta, gamma)
+            rotmat[idmp, idm] = (-1)^(mp - mm) * rotation_matrix_element(l, mm, mp, alpha, beta, gamma)
         end
     end
-    rot_mat
+    return round.(rotmat, digits=SDIG)
 end
 
 
-function rotation_matrix_element(l::Int, m::Int, mp::Int, alpha::Real,
-                                beta::Real, gamma::Real)::ComplexF64
-    exp(-1.0im*mp*alpha) * small_d(l, mp, m, beta) * exp(-1.0im*m*gamma)
+function rotation_matrix_element(l::Int, m::Int, mp::Int, alpha::Real, beta::Real, gamma::Real)::ComplexF64
+    return exp(-1.0im*mp*alpha) * small_d(l, mp, m, beta) * exp(-1.0im*m*gamma)
 end
 
 
@@ -80,10 +117,10 @@ function small_d(l::Int, mp::Int, m::Int, beta::Real)::Float64
     smax = Int(minimum([l-m, l-mp]))
     for s in smin:1:smax
         djmpm += (-1)^(l-m-s)*
-        ((cos(beta/2))^(2s+mp+m))*
-        ((sin(beta/2))^(2l-2s-m-mp))*
-        binomial(Int(l+m), Int(l-mp-s))*
-        binomial(Int(l-m), Int(s))
+            ((cos(beta/2))^(2s+mp+m))*
+            ((sin(beta/2))^(2l-2s-m-mp))*
+            binomial(Int(l+m), Int(l-mp-s))*
+            binomial(Int(l-m), Int(s))
     end
     djmpm *= sqrt((factorial(Int(l+mp))*factorial(Int(l-mp)))/
                   (factorial(Int(l+m))*factorial(Int(l-m))))
@@ -131,17 +168,16 @@ function rotate_blm(bfactors::DataFrame, alpha::Real, beta::Real, gamma::Real)::
         end
         # S * bfactors where bfactors is a (2l+1) vector
         bfactors_rot .= S_matrix * bfactors_ori
-        # @assert norm(imag(bfactors_rot)) < 1e-12
+        @assert norm(imag(bfactors_rot)) < PREC
         bfactors_res .= real(bfactors_rot)
-        append!(bfactors_rotated,
-                DataFrame("Blm"=>bfactors_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
+        append!(bfactors_rotated, DataFrame("Blm"=>bfactors_res, "l"=>fill(l, Int(2l+1)), "m"=>-l:1:l))
     end
-    bfactors_rotated
+    return bfactors_rotated
 end
 
 
 function rotate_stevens(l::Int, alpha::Real, beta::Real, gamma::Real)::Matrix{ComplexF64}
-    transpose(inv(Alm_matrix(l))) * wigner_D(l, alpha, beta, gamma)' * transpose(Alm_matrix(l))
+    return transpose(inv(Alm_matrix(l))) * wigner_D(l, alpha, beta, gamma)' * transpose(Alm_matrix(l))
 end
 
 
@@ -175,5 +211,5 @@ function Alm_matrix(l::Int)::Matrix{ComplexF64}
             a_matrix[m,  abs(m)] = alm_coeff[l, abs(m)] * (-1)^m * -1im
         end
     end
-    parent(a_matrix)
+    return parent(a_matrix)
 end
