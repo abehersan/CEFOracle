@@ -96,6 +96,21 @@ function simulate_Escan(NXS::Vector{VEC{2}}, Es::AbstractVector, R::Function=TAS
 end
 
 
+@doc raw"""
+    cef_neutronxsection_crystal!(ion::mag_ion, cefparams::DataFrame, calc_df::DataFrame; resfunc::Function=TAS_resfunc)::Nothing
+
+Calculate the inelastic neutron scattering cross-section
+of a crystalline magnetic system consisting of magnetic ions of type `single_ion`.
+The CEF parameters are given in the `bfactors` `DataFrame`.
+The calculation is performed on a `DataFrame` grid `calc_grid`.
+
+`calc_grid` must have columns `[:T, :EN, :Qx, :Qy, :Qz, :Bx, :By, :Bz]`.
+The scattering vector `Q` should be included in Cartesian coordinates and have
+components in units of reciprocal Angstrom.
+
+This function simulates an energy-scan with an effective resolution kernel given in `resfunc`.
+As per the default it assumes a Gaussian resolution, see `TAS_resfunc` for details.
+"""
 function cef_neutronxsection_crystal!(ion::mag_ion, cefparams::DataFrame, calc_df::DataFrame; resfunc::Function=TAS_resfunc)::Nothing
     extfield = [mean(calc_df.Bx), mean(calc_df.By), mean(calc_df.Bz)]
     E, V = eigen(cef_hamiltonian(ion, cefparams, B=extfield))
@@ -110,6 +125,20 @@ function cef_neutronxsection_crystal!(ion::mag_ion, cefparams::DataFrame, calc_d
 end
 
 
+@doc raw"""
+    cef_neutronxsection_powder!(ion::mag_ion, cefparams::DataFrame, calc_df::DataFrame; resfunc::Function=TAS_resfunc)::Nothing
+
+Calculate the inelastic neutron scattering cross-section
+of a polycrystalline magnetic system consisting of magnetic ions of type `single_ion`.
+The CEF parameters are given in the `bfactors` `DataFrame`.
+The calculation is performed on a `DataFrame` grid `calc_grid`.
+
+`calc_grid` must have columns `[:T, :EN, :Q]`.
+The length of the scattering vector `Q` should have units of reciprocal Angstrom.
+
+This function simulates an energy-scan with an effective resolution kernel given in `resfunc`.
+As per the default it assumes a Gaussian resolution, see `TAS_resfunc` for details.
+"""
 function cef_neutronxsection_powder!(ion::mag_ion, cefparams::DataFrame, calc_df::DataFrame; resfunc::Function=TAS_resfunc)::Nothing
     E, V = eigen(cef_hamiltonian(ion, cefparams))
     E .-= minimum(E)
@@ -123,6 +152,16 @@ function cef_neutronxsection_powder!(ion::mag_ion, cefparams::DataFrame, calc_df
 end
 
 
+@doc raw"""
+    TAS_resfunc(E::Float64, Epeak::Float64, width::Function=x->0.5)::Float64
+
+Default resolution function.
+This function evaluates a Gaussian centered at `Epeak` as evaluated at `E`.
+
+The standard-deviation, sigma can in principle change as function of energy `E`.
+
+In this default, it is assumed constant and given by `width`.
+"""
 function TAS_resfunc(E::Float64, Epeak::Float64, width::Function=x->0.5)::Float64
     return gaussian(x=E, center=Epeak, amplitude=1.0, sigma=width(E))
 end
