@@ -18,10 +18,10 @@ def CEF_comparison():
     cef["B40"] = 1.6087e-5
     cef["B60"] = 6.412e-7
     cef["B66"] = -8.324e-6
-    
+
     fig, axes = plt.subplots(2, 2, figsize=(11.7, 8.3))
     ax_ins, ax_mag, ax_chi, ax_hc = axes.ravel()
-    
+
     ### INS X-section ###
     cef.PeakShape = 'Gaussian'
     cef.FWHM = 0.5
@@ -34,7 +34,7 @@ def CEF_comparison():
     ax_ins.legend()
     ax_ins.set_xlabel("E [meV]")
     ax_ins.set_ylabel("I(Q, E) [arb. units]")
-    
+
     ### Magnetisation ###
     Bs = np.linspace(0, 12, 101)
     Mu_para = cef.getMagneticMoment(Temperature=1.5, Hmag=Bs, Hdir=[0,0,1], Unit="bohr")
@@ -46,7 +46,7 @@ def CEF_comparison():
     ax_mag.legend()
     ax_mag.set_xlabel("B [T]")
     ax_mag.set_ylabel("mu [muB / ion]")
-    
+
     ### Static susceptibility ###
     Ts = np.linspace(0, 300, 701)
     chi_para = cef.getSusceptibility(Ts, Hdir=[0,0,1], Unit="CGS")
@@ -60,7 +60,7 @@ def CEF_comparison():
     ax_chi.legend()
     ax_chi.set_xlabel("T [K]")
     ax_chi.set_ylabel("1/chi [emu/cm^3]")
-    
+
     ### Schottky heat capacity and magnetic entropy ###
     Ts = np.linspace(0.5, 300, 701)
     HC = cef.getHeatCapacity(Ts)
@@ -72,11 +72,10 @@ def CEF_comparison():
     ax_hc.legend()
     ax_hc.set_xlabel("T [K]")
     ax_hc.set_ylabel("HC [J/mol/K]")
-    
+
     plt.tight_layout()
     plt.show()
-    
+
     return None
-    
-    
+
 CEF_comparison()
