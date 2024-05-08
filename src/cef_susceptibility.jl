@@ -111,6 +111,7 @@ end
 function cef_susceptibility_powdergrid!(ion::mag_ion, bfactors::DataFrame,
                                    calc_df::DataFrame; xyzw::Matrix{Float64},
                                    units::String="SI")::Nothing
+    @warn "FUNCTION UNDER OPTIMISATION CHANGES!"
     unit_factor = begin
         if isequal(units, "SI")
             4.062426*1e-7   # N_A * muB(erg/G) * muB(meV/G)

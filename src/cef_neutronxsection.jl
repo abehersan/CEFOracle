@@ -84,7 +84,7 @@ function calc_neutronspectrum_powd(ion::mag_ion, Ep::Vector{Float64}, Vp::Matrix
 end
 
 
-function simulate_Escan(NXS::Vector{VEC{2}}, Es::AbstractVector, R::Function=TAS_resfunc)
+function simulate_Escan(NXS::Vector{VEC{2}}, Es::AbstractVector, R::Function=TAS_resfunc)::Vector{Float64}
     Is = zeros(length(Es))
     @inbounds for i in eachindex(Es)
         @inbounds for j in eachindex(NXS)

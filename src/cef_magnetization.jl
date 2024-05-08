@@ -14,6 +14,9 @@ end
 function calc_magmom(g::VEC{3}, spinops::Vector{Matrix{ComplexF64}}, Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, T::Real)::Float64
     spin_expval = zeros(Float64, 3)
     @inbounds for i in eachindex(spin_expval)
+        if iszero(spinops[i])
+            continue
+        end
         spin_expval[i] = thermal_average(Ep=Ep, Vp=Vp, op=spinops[i], T=T, mode=real)
     end
     return norm(g .* spin_expval)
