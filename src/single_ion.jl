@@ -146,7 +146,7 @@ Base.@kwdef mutable struct mag_ion
     Jp::Matrix{ComplexF64}
     Jm::Matrix{ComplexF64}
     Jz::Matrix{ComplexF64}
-    g::VEC{3}
+    g::MVEC{3}
     stevens_factors::VEC{3}
     rad_wavefunction::VEC{3}
     ff_coeff_j0::VEC{7}

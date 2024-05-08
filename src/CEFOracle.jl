@@ -16,6 +16,7 @@ const SDIG::Int64 = 9           # for numerical cutoffs
 const VEC3 = SVector{3, Float64}
 const MAT3 = SMatrix{3, 3, Float64, 9}
 const VEC{N} = SVector{N, Float64}
+const MVEC{N} = MVector{N, Float64}
 const CVEC{N} = SVector{N, ComplexF64}
 const CMAT{N} = SMatrix{N, N, ComplexF64}
 const HERMITIANC64 = Hermitian{ComplexF64, Matrix{ComplexF64}}
@@ -64,6 +65,7 @@ export thermal_average
 
 include("./cef_magnetization.jl")
 export cef_magneticmoment_crystal!
+export cef_magneticmoment_powder!
 export cef_magneticmoment_powdergrid!
 
 

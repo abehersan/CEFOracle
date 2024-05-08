@@ -36,8 +36,7 @@ applied magnetic field is specified in `calc_grid` on a row-by-row basis.
 
 `calc_grid` must have columns `[:T, :Bx, :By, :Bz]`.
 
-The magnetic moment [Bohr magneton per ion] can be calculated in `SI`, `CGS`
-or `ATOMIC`.
+The magnetic moment [Bohr magneton per ion] can be calculated in `SI`, `CGS` or `ATOMIC` units.
 """
 function cef_magneticmoment_crystal!(ion::mag_ion, cefparams::DataFrame, calc_df::DataFrame; units::String="ATOMIC")
     unit_factor = mag_units(units)
@@ -54,6 +53,47 @@ function cef_magneticmoment_crystal!(ion::mag_ion, cefparams::DataFrame, calc_df
         end
         :M_CALC = calc_magmom(ion.g, spin_proj, E, V, :T) * unit_factor
     end
+    return nothing
+end
+
+
+@doc raw"""
+    cef_magneticmoment_powder!(ion::mag_ion, cefparams::DataFrame, calc_df::DataFrame; units::String="ATOMIC")
+
+Calculate the field-induced magnetic moment of a polycrystalline sample
+consisting of magnetic ions of type `single_ion`.
+The CEF parameters are given in the `bfactors` `DataFrame`.
+The calculation is performed on a `DataFrame` grid `calc_grid`.
+
+The temperature of the system as well as magnitude of the
+applied magnetic field is specified in `calc_grid` on a row-by-row basis.
+
+`calc_grid` must have columns `[:T, :B]`.
+
+The magnetic moment [Bohr magneton per ion] can be calculated in `SI`, `CGS` or `ATOMIC` units.
+"""
+function cef_magneticmoment_powder!(ion::mag_ion, cefparams::DataFrame, calc_df::DataFrame; units::String="ATOMIC")
+    unit_factor = mag_units(units)
+    spinops = [ion.Jx, ion.Jy, ion.Jz]
+    T = mean(calc_df.T)
+    Bs = calc_df.B
+    MAVG = similar(Bs)
+    @inbounds for i in eachindex(Bs)
+        E, V = eigen(cef_hamiltonian(ion, cefparams, B=[Bs[i], 0.0, 0.0]))
+        E .-= minimum(E)
+        MX = calc_magmom(ion.g, spinops .* [1.0, 0.0, 0.0], E, V, T)
+
+        E, V = eigen(cef_hamiltonian(ion, cefparams, B=[0.0, Bs[i], 0.0]))
+        E .-= minimum(E)
+        MY = calc_magmom(ion.g, spinops .* [0.0, 1.0, 0.0], E, V, T)
+
+        E, V = eigen(cef_hamiltonian(ion, cefparams, B=[0.0, 0.0, Bs[i]]))
+        E .-= minimum(E)
+        MZ = calc_magmom(ion.g, spinops .* [0.0, 0.0, 1.0], E, V, T)
+
+        MAVG[i] = (MX + MY + MZ) / 3.0
+    end
+    calc_df[!, :M_CALC] = MAVG * unit_factor
     return nothing
 end
 
