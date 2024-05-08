@@ -1,12 +1,4 @@
-"""
-blm_utils.jl
-
-Useful functions for generating and working with CEF parameter dataframes
-"""
-
-
-
-"""
+@doc raw"""
     blm_dframe(Blm_dict::Dict{String, <:Real})::DataFrame
 
 Given a dictionary of Stevens coefficients of the form Blm -> Value, return
@@ -19,7 +11,7 @@ function blm_dframe(blm_dict::Dict{String, <:Real})::DataFrame
 end
 
 
-"""
+@doc raw"""
     alm_dframe(Blm_dict::Dict{String, <:Real})::DataFrame
 
 Given a dictionary of Stevens coefficients of the form Alm -> Value, return
@@ -76,7 +68,7 @@ function full_blm_dframe(bfactors::DataFrame)::DataFrame
 end
 
 
-"""
+@doc raw"""
     get_alm!(single_ion::mag_ion, bfactors::DataFrame)::DataFrame
 
 Factorization of the Stevens B_lm parameters defined as
@@ -113,7 +105,7 @@ function get_alm!(single_ion::mag_ion, bfactors::DataFrame)::DataFrame
 end
 
 
-"""
+@doc raw"""
     get_blm!(single_ion::mag_ion, afactors::DataFrame)::DataFrame
 
 Calculate the stevens Blm parameters defined as B_lm = A_lm * <r^l> * theta_l,

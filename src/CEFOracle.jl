@@ -4,16 +4,28 @@ module CEFOracle
 using DataFrames
 using DataFramesMeta
 using LinearAlgebra
+using OffsetArrays
 using StaticArrays
 using Statistics
-using OffsetArrays
+using Trapz
 
 
-const PREC::Float64 = 1.0e-7
+const PREC::Float64 = 1.0e-9    # for degeneracy calculations
+const SDIG::Int64 = 9           # for numerical cutoffs
+
+const VEC3 = SVector{3, Float64}
+const MAT3 = SMatrix{3, 3, Float64, 9}
+const VEC{N} = SVector{N, Float64}
+const MVEC{N} = MVector{N, Float64}
+const CVEC{N} = SVector{N, ComplexF64}
+const CMAT{N} = SMatrix{N, N, ComplexF64}
+const HERMITIANC64 = Hermitian{ComplexF64, Matrix{ComplexF64}}
 
 
 include("./single_ion.jl")
-export single_ion, mag_ion
+export single_ion
+export mag_ion
+export spin_operators
 
 
 include("./units.jl")
@@ -22,12 +34,15 @@ export meV_per_K, mu0, muB, kB, NA, Rg
 
 include("./utils.jl")
 export effective_moment
-export is_normalized, is_hermitian, is_unitary
+export isnormalized
+export isunitary
 
 
 include("./blm_utils.jl")
-export blm_dframe, alm_dframe
-export get_blm!, get_alm!
+export blm_dframe
+export alm_dframe
+export get_blm!
+export get_alm!
 
 
 include("./powder_grid.jl")
@@ -39,31 +54,36 @@ export SOPHE_grid
 include("./cef_matrix.jl")
 export cef_hamiltonian
 export cef_eigensystem
-export spin_operators
 export stevens_EO
 
 
 include("./thermodynamical_quantities.jl")
 export population_factor
 export partition_function
-export transition_matrix_element
 export thermal_average
 
 
 include("./cef_magnetization.jl")
-export cef_magneticmoment_crystal!, cef_magneticmoment_powder!
+export cef_magneticmoment_crystal!
+export cef_magneticmoment_powder!
+# export cef_magneticmoment_powdergrid!
 
 
 include("./cef_susceptibility.jl")
-export cef_susceptibility_crystal!, cef_susceptibility_powder!
+export cef_susceptibility_crystal!
+export cef_susceptibility_powder!
+# export cef_susceptibility_powdergrid!
 
 
 include("./cef_entropy.jl")
-export cef_entropy!, cef_entropy_speclevels!
+export cef_entropy!
+export cef_entropy_speclevels!
 
 
 include("./cef_neutronxsection.jl")
-export cef_neutronxsection_crystal!, cef_neutronxsection_powder!
+export dipolar_formfactor
+export cef_neutronxsection_crystal!
+export cef_neutronxsection_powder!
 export TAS_resfunc, gaussian, lorentz
 
 
@@ -72,6 +92,7 @@ export stevens_O
 
 
 include("./cef_rot.jl")
+export rotation_unitary
 export rotate_blm
 export get_euler_angles
 export ZYZ_rotmatrix

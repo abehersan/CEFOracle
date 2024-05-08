@@ -1,38 +1,3 @@
-
-"""
-    cef_eigensystem_multisite(sites::AbstractVector; verbose=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
-
-Calculate and diagonalize the CEF matrix for multiple inequivalent CEF environments.
-`sites` is a vector of `cef_site` structs.
-
-Limitation: all sites must host the same magnetic ion species.
-"""
-function cef_eigensystem_multisite(sites::AbstractVector; verbose::Bool=false)::Tuple{Matrix{ComplexF64}, Vector{Float64}, Matrix{ComplexF64}}
-    J = sites[1].single_ion.J # only multisites of the same ion are supported
-    m_dim = Int(2*J+1)
-    cef_matrix = zeros(ComplexF64, (m_dim, m_dim))
-    for site in sites
-        cef_matrix += (H_cef(site.single_ion.J, site.bfactors) +
-                       H_zeeman(site.single_ion.J, site.single_ion.g, site.B)) *
-                      site.site_ratio
-    end
-    cef_wavefunctions = eigvecs(cef_matrix)
-    cef_energies = eigvals(cef_matrix)
-    if verbose
-        println("---Multisite CEF matrix diagonalization results---")
-        for (i, site) in enumerate(sites)
-            println("External field in Tesla for site #$i")
-            println("[Bx, By, Bz] = $(site.B)")
-        end
-        println("CEF matrix, basis vectors are |J, -MJ>, ... |J, MJ>")
-        display(cef_matrix)
-        println("CEF-split single-ion energy levels in meV:")
-        display(cef_energies .- minimum(cef_energies))
-    end
-    (cef_matrix, cef_energies, cef_wavefunctions)
-end
-
-
 """
     cef_site(single_ion::mag_ion, bfactors::DataFrame, site_ratio::Real=1.0, B::Union{Vector{<:Real}, Real}=[0,0,0])
 
@@ -53,7 +18,7 @@ end
 
 
 
-function cef_magnetization_multisite(sites::AbstractVector; T::Real=1.5,
+function cef_magnetization_multisite(sites::Vector{cef_site}; T::Real=1.5,
                                     units::String="SI")::Union{Vector{Float64}, Float64}
     magnetization_vector::Float64 = 0.0
     for site in sites
