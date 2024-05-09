@@ -40,7 +40,7 @@ function calc_chialphaalpha(; op_alpha::Matrix{ComplexF64}, Ep::Vector{Float64},
 end
 
 
-function calc_chi(g::VEC{3}; spin_ops::Vector{Matrix{ComplexF64}}, Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, T::Real)::Float64
+function calc_chi(g::MVEC{3}; spin_ops::Vector{Matrix{ComplexF64}}, Ep::Vector{Float64}, Vp::Matrix{ComplexF64}, T::Real)::Float64
     chi_vec = zeros(Float64, 3)
     @inbounds for i in eachindex(spin_ops)
         if iszero(spin_ops[i])
